@@ -28,7 +28,7 @@ dnl***************************************************************************
 dnl
 dnl Author: Thomas E. Dickey 1995-on
 dnl
-dnl $Id: aclocal.m4,v 1.788 2016/02/20 23:46:28 tom Exp $
+dnl $Id: aclocal.m4,v 1.790 2016/05/29 00:35:34 tom Exp $
 dnl Macros used in NCURSES auto-configuration script.
 dnl
 dnl These macros are maintained separately from NCURSES.  The copyright on
@@ -711,11 +711,15 @@ AC_SUBST(BUILD_EXEEXT)
 AC_SUBST(BUILD_OBJEXT)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_CC_ENV_FLAGS version: 2 updated: 2015/04/12 15:39:00
+dnl CF_CC_ENV_FLAGS version: 3 updated: 2016/05/21 18:10:17
 dnl ---------------
 dnl Check for user's environment-breakage by stuffing CFLAGS/CPPFLAGS content
 dnl into CC.  This will not help with broken scripts that wrap the compiler with
 dnl options, but eliminates a more common category of user confusion.
+dnl
+dnl Caveat: this also disallows blanks in the pathname for the compiler, but
+dnl the nuisance of having inconsistent settings for compiler and preprocessor
+dnl outweighs that limitation.
 AC_DEFUN([CF_CC_ENV_FLAGS],
 [
 # This should have been defined by AC_PROG_CC
@@ -723,13 +727,16 @@ AC_DEFUN([CF_CC_ENV_FLAGS],
 
 AC_MSG_CHECKING(\$CC variable)
 case "$CC" in
-(*[[\ \	]]-[[IUD]]*)
+(*[[\ \	]]-*)
 	AC_MSG_RESULT(broken)
 	AC_MSG_WARN(your environment misuses the CC variable to hold CFLAGS/CPPFLAGS options)
 	# humor him...
-	cf_flags=`echo "$CC" | sed -e 's/^[[^ 	]]*[[ 	]]//'`
+	cf_flags=`echo "$CC" | sed -e 's/^[[^ 	]]*[[ 	]][[ 	]]*//'`
 	CC=`echo "$CC" | sed -e 's/[[ 	]].*//'`
 	CF_ADD_CFLAGS($cf_flags)
+	CF_VERBOSE(resulting CC: '$CC')
+	CF_VERBOSE(resulting CFLAGS: '$CFLAGS')
+	CF_VERBOSE(resulting CPPFLAGS: '$CPPFLAGS')
 	;;
 (*)
 	AC_MSG_RESULT(ok)
@@ -5311,7 +5318,7 @@ CF_ACVERSION_CHECK(2.52,
 CF_CC_ENV_FLAGS
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_PROG_CC_C_O version: 3 updated: 2010/08/14 18:25:37
+dnl CF_PROG_CC_C_O version: 4 updated: 2016/05/21 18:08:09
 dnl --------------
 dnl Analogous to AC_PROG_CC_C_O, but more useful: tests only $CC, ensures that
 dnl the output file can be renamed, and allows for a shell variable that can
@@ -5319,13 +5326,15 @@ dnl be used later.  The parameter is either CC or CXX.  The result is the
 dnl cache variable:
 dnl	$cf_cv_prog_CC_c_o
 dnl	$cf_cv_prog_CXX_c_o
+dnl
+dnl $1 = compiler
+dnl $2 = compiler options, if any
 AC_DEFUN([CF_PROG_CC_C_O],
 [AC_REQUIRE([AC_PROG_CC])dnl
 AC_MSG_CHECKING([whether [$]$1 understands -c and -o together])
 AC_CACHE_VAL(cf_cv_prog_$1_c_o,
 [
 cat > conftest.$ac_ext <<CF_EOF
-#include <stdio.h>
 int main()
 {
 	${cf_cv_main_return:-return}(0);
@@ -5333,7 +5342,7 @@ int main()
 CF_EOF
 # We do the test twice because some compilers refuse to overwrite an
 # existing .o file with -o, though they will create one.
-ac_try='[$]$1 -c conftest.$ac_ext -o conftest2.$ac_objext >&AC_FD_CC'
+ac_try='[$]$1 $2 -c conftest.$ac_ext -o conftest2.$ac_objext >&AC_FD_CC'
 if AC_TRY_EVAL(ac_try) &&
   test -f conftest2.$ac_objext && AC_TRY_EVAL(ac_try);
 then
@@ -5437,11 +5446,11 @@ fi
 AC_SUBST(LDCONFIG)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_PROG_LINT version: 2 updated: 2009/08/12 04:43:14
+dnl CF_PROG_LINT version: 3 updated: 2016/05/22 15:25:54
 dnl ------------
 AC_DEFUN([CF_PROG_LINT],
 [
-AC_CHECK_PROGS(LINT, tdlint lint alint splint lclint)
+AC_CHECK_PROGS(LINT, lint cppcheck splint)
 AC_SUBST(LINT_OPTS)
 ])dnl
 dnl ---------------------------------------------------------------------------
@@ -7169,7 +7178,7 @@ then
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_WITH_GPM version: 8 updated: 2012/10/06 17:56:13
+dnl CF_WITH_GPM version: 9 updated: 2016/05/28 20:33:31
 dnl -----------
 dnl
 dnl The option parameter (if neither yes/no) is assumed to be the name of
@@ -7189,12 +7198,17 @@ if test "$with_gpm" != no ; then
 		if test "$with_gpm" != yes && test "$with_gpm" != maybe ; then
 			CF_VERBOSE(assuming we really have GPM library)
 			AC_DEFINE(HAVE_LIBGPM,1,[Define to 1 if we have the gpm library])
+			with_gpm=yes
 		else
 			AC_CHECK_LIB(gpm,Gpm_Open,[:],[
-				AC_MSG_ERROR(Cannot link with GPM library)
+				if test "$with_gpm" = maybe; then
+					AC_MSG_WARN(Cannot link with GPM library)
+					with_gpm=no
+				else
+					AC_MSG_ERROR(Cannot link with GPM library)
+				fi
+			])
 		fi
-		with_gpm=yes
-		])
 	],[
 		test "$with_gpm" != maybe && AC_MSG_WARN(Cannot find GPM header)
 		with_gpm=no
