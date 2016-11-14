@@ -1,7 +1,6 @@
-#! /bin/sh
-# $Id: adacurses-config.in,v 1.11 2016/11/05 20:48:35 tom Exp $
+#!/bin/sh
 ##############################################################################
-# Copyright (c) 2007-2012,2016 Free Software Foundation, Inc.                #
+# Copyright (c) 2016 Free Software Foundation, Inc.                          #
 #                                                                            #
 # Permission is hereby granted, free of charge, to any person obtaining a    #
 # copy of this software and associated documentation files (the "Software"), #
@@ -28,55 +27,24 @@
 # authorization.                                                             #
 ##############################################################################
 #
-# This script returns the options to add to `gnatmake' for using AdaCurses.
+# $Id: library-cfg.sh,v 1.1 2016/09/17 23:45:03 tom Exp $
+#
+# Work around incompatible behavior introduced with gnat6, which causes
+# gnatmake to attempt to compile all of the C objects which might be part of
+# the project.  This can only work if we provide the compiler flags (done here
+# by making a copy of the project file with that information filled in).
+input=$1
+shift 1
+param=
+while test $# != 0
+do
+	test -n "$param" && param="$param,"
+	param="$param\"$1\"" 
+	shift 1
+done
 
-DESTDIR=@DESTDIR@
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-libdir=@libdir@
-
-ADA_INCLUDE=@ADA_INCLUDE@
-ADA_OBJECTS=@ADA_OBJECTS@
-
-VERSION=@NCURSES_MAJOR@.@NCURSES_MINOR@.@NCURSES_PATCH@
-
-CFLAGS="-aI$ADA_INCLUDE -aO$ADA_OBJECTS"
-LIBS="-L$ADA_OBJECTS -lAdaCurses"
-
-THIS="adacurses"
-THIS_CFG="$THIS@DFT_ARG_SUFFIX@-config"
-
-case "x$1" in
-	x--version)
-		echo AdaCurses $VERSION
-		;;
-	x--cflags)
-		echo $CFLAGS
-		;;
-	x--libs)
-		echo $LIBS
-		;;
-	x)
-		# if no parameter is given, give what gnatmake needs
-		echo "$CFLAGS -largs $LIBS"
-		;;
-	x--help)
-		cat <<ENDHELP
-Usage: ${THIS_CFG} [options]
-
-Options:
-  --cflags           echos the gnat (Ada compiler) flags needed to compile with ${THIS}
-  --libs             echos the gnat libraries needed to link with ${THIS}
-
-  --version          echos the release+patchdate version of ${THIS}
-
-  --help             prints this message
-
-If no options are given, echos the full set of flags needed by gnatmake.
-ENDHELP
-		;;
-	*)
-		echo 'Usage: $THIS_CFG [--version | --cflags | --libs]' >&2
-		exit 1
-		;;
-esac
+sed \
+	-e '/for Default_Switches ("C") use/s,-- ,,' \
+	-e '/for Default_Switches ("C") use/s% use .*'%" use($param);"% \
+	$input
+exit 0

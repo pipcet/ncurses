@@ -25,7 +25,7 @@
 -- sale, use or other dealings in this Software without prior written        --
 -- authorization.                                                            --
 -------------------------------------------------------------------------------
--- $Id: NEWS,v 1.2624 2016/06/25 21:23:38 tom Exp $
+-- $Id: NEWS,v 1.2695 2016/11/13 00:10:13 tom Exp $
 -------------------------------------------------------------------------------
 
 This is a log of changes that ncurses has gone through since Zeyd started
@@ -44,6 +44,146 @@ See the AUTHORS file for the corresponding full names.
 
 Changes through 1.9.9e did not credit all contributions;
 it is not possible to add this information.
+
+20161112
+	+ improve -W option in tic/infocmp:
+	  + correct order of size-adjustments in wrapped lines
+	  + if -f option splits line, do not further split it with -W
+	  + begin a new line when adding "use=" after a wrapped line
+
+20161105
+	+ fix typo in man/terminfo.tail (Alain Williams).
+	+ correct program-name in adacurses6-config.1 manual page.
+
+20161029
+	+ add new function "unfocus_current_field" (Leon Winter)
+
+20161022
+	+ modify tset -w (and tput reset) to update the program's copy of the
+	  screensize if it was already set in the system, to improve tabstop
+	  setting which relies upon knowing the actual screensize.
+	+ add functionality of tset -w to tput, like the "-c" feature this is
+	  not optional in tput.
+	+ add "clear" as a possible link/alias to tput.
+	+ improve tput's check for being called as "init" or "reset" to allow
+	  for transformed names.
+	+ split-out the "clear" function from progs/clear.c, share with
+	  tput to get the same behavior, e.g., the E3 extension.
+
+20161015
+	+ amend internal use of tputs to consistently use the number of lines
+	  affected, e.g., for insert/delete character operations.  While
+	  merging terminfo source early in 1995, several descriptions used the
+	  "*" proportional delay for these operations, prompting a change in
+	  doupdate.
+	+ regenerate llib-* files.
+	+ regenerate HTML manpages.
+	+ fix several formatting issues with manual pages.
+
+20161008
+	+ adjust size in infocmp/tic to work with strlcpy.
+	+ fix configure script to record when strlcat is found on OpenBSD.
+	+ build-fix for "recent" OpenBSD vs baudrate.
+
+20161001
+	+ add -W option to tic/infocmp to force long strings to wrap.  This is
+	  in addition to the -w option which attempts to fit capabilities into
+	  a given line-length.
+	+ add linux-m1 minitel entries (patch by Alexandre Montaron).
+	+ correct rs2 string for vt100-nam -TD
+
+20160924
+	+ modify _nc_tic_expand to escape comma if it immediately follows a
+	  percent sign, to work with minitel change.
+	+ updated minitel and viewdata descriptions (Alexandre Montaron).
+
+20160917
+	+ build-fix for gnat6, which unhelpfully attempts to compile C files.
+	+ fix typo in 20160910 changes (Debian #837892, patch by Sven Joachim).
+
+20160910
+	+ trim dead code ifdef'd with HIDE_EINTR since 970830 (discussion with
+	  Leon Winter).
+	+ trim some obsolete/incorrect wording about EINTR from wgetch manual
+	  page (patch by Leon Winter).
+	+ really correct 20100515 change (patch by Rich Coe).
+	+ add "--enable-string-hacks" option to test/configure
+	+ completed string-hacks for "sprintf", etc., including test-programs.
+	+ make "--enable-string-hacks" work with Debian by checking for the
+	  "bsd" library and its associated "<bsd/string.h>" header.
+
+20160903
+	+ correct 20100515 change for weak signals versus sigprocmask (report
+	  by Rich Coe).
+	+ modify misc/Makefile.in to work around OpenBSD "make" which unlike
+	  all other versions of "make" does not recognize continuation lines
+	  of comments.
+	+ amend the last change to CF_C_ENV_FLAGS to move only the
+	  preprocessor, optimization and warning flags to CPPFLAGS and CFLAGS,
+	  leaving the residue in CC.  That happens to work for gcc's various
+	  "model" options, but may require tuning for other compilers (report
+	  by Sven Joachim).
+
+20160827
+	+ add "v" menu entry to test/ncurses.c to show baudrate and other
+	  values.
+	+ add "newer" baudrate symbols from Linux and FreeBSD to progs/tset.c,
+	  lib_baudrate.c
+	+ modify CF_XOPEN_SOURCE macro:
+	  + add "uclinux" to case for "linux" (patch by Yann E. Morin)
+	  + modify _GNU_SOURCE for cygwin headers, tested with cygwin 2.3, 2.5
+	    (patch by Corinna Vinschen, from changes to tin).
+	+ improve CF_CC_ENV_FLAGS macro to allow for compiler wrappers such
+	  as "ccache" (report by Enrico Scholz).
+	+ update config.guess, config.sub from
+		http://git.savannah.gnu.org/cgit/config.git
+
+20160820
+	+ update tput manual page to reflect changes to manipulate terminal
+	  modes by sharing functions with tset.
+	+ add the terminal-mode parts of "reset" (aka tset) to the "tput reset"
+	  command, making the two almost the same except for window-size.
+	+ adapt logic used in dialog "--keep-tite" option for test/filter.c as
+	  "-a" option.  When set, test/filter attempts to suppress the
+	  alternate screen.
+	+ correct a typo in interix entry -TD
+
+20160813
+	+ add a dependency upon generated-sources in Ada95/src/Makefile.in to
+	  handle a case of "configure && make install".
+	+ trim trailing blanks from include/Caps*, to work around a problem
+	  in sed (Debian #818067).
+
+20160806
+	+ improve CF_GNU_SOURCE configure macro to optionally define
+	  _DEFAULT_SOURCE work around a nuisance in recent glibc releases.
+	+ move the terminfo-specific parts of tput's "reset" function into
+	  the shared reset_cmd.c, making the two forms of reset use the same
+	  strings.
+	+ split-out the terminal initialization functions from tset as
+	  progs/reset_cmd.c, as part of changes to merge the reset-feature
+	  with tput.
+
+20160730
+	+ change tset's initialization to allow it to get settings from the
+	  standard input as well as /dev/tty, to be more effective when
+	  output or error are redirected.
+	+ improve discussion of history and portability for tset/reset/tput
+	  manual pages.
+
+20160723
+	+ improve error message from tset/reset when both stderr/stdout are
+	  redirected to a file or pipe.
+	+ improve organization of curs_attr.3x, curs_color.3x
+
+20160709
+	+ work around Debian's antique/unmaintained version of mawk when
+	  building link_test.
+	+ improve test/list_keys.c, showing ncurses's convention of modifiers
+	  for special keys, based on xterm.
+
+20160702
+	+ improve test/list_keys.c, using $TERM if no parameters areg given.
 
 20160625
 	+ build-fixes for ncurses "test_progs" rule.
@@ -10989,7 +11129,7 @@ it is not possible to add this information.
 	  (SVr4) curses, which doesn't use 'const' in its prototypes.
 	+ modify ifdef's in test/hashtest.c and test/view.c to compile with
 	  Solaris curses.
-	+ modify _tracedump() to pad pad colors & attrs lines to match change
+	+ modify _tracedump() to pad colors & attrs lines to match change
 	  in 970101 showing first/last changes.
 	+ corrected location of terminating null on dynamically allocated forms
 	  fields (patch by Per Foreby).

@@ -1,6 +1,6 @@
 '\" t
 .\"***************************************************************************
-.\" Copyright (c) 1998-2014,2015 Free Software Foundation, Inc.              *
+.\" Copyright (c) 1998-2015,2016 Free Software Foundation, Inc.              *
 .\"                                                                          *
 .\" Permission is hereby granted, free of charge, to any person obtaining a  *
 .\" copy of this software and associated documentation files (the            *
@@ -27,7 +27,7 @@
 .\" authorization.                                                           *
 .\"***************************************************************************
 .\"
-.\" $Id: infocmp.1m,v 1.57 2015/09/05 20:50:22 tom Exp $
+.\" $Id: infocmp.1m,v 1.59 2016/10/22 19:54:35 tom Exp $
 .TH @INFOCMP@ 1M ""
 .ds n 5
 .de bP
@@ -50,6 +50,7 @@ L\
 T\
 U\
 V\
+W\
 c\
 d\
 e\
@@ -137,7 +138,7 @@ These should be edited by hand.
 For best results when converting to \fBtermcap\fP format,
 you should use both \fB\-C\fP and \fB\-r\fP.
 Normally a termcap description is limited to 1023 bytes.
-@INFOCMP@ trims away less essential parts to make it fit.
+\fB@INFOCMP@\fP trims away less essential parts to make it fit.
 If you are converting to one of the (rare) termcap implementations
 which accept an unlimited size of termcap,
 you may want to add the \fB\-T\fP option.
@@ -234,7 +235,7 @@ superfluous.
 were not needed.
 .SS Changing Databases [\-A \fIdirectory\fR] [\-B \fIdirectory\fR]
 Like other \fBncurses\fP utilities,
-@INFOCMP@ looks for the terminal descriptions in several places.
+\fB@INFOCMP@\fP looks for the terminal descriptions in several places.
 You can use the \fBTERMINFO\fP and \fBTERMINFO_DIRS\fP environment variables
 to override the compiled-in default list of places to search
 (see \fBcurses\fP(3X) for details).
@@ -476,6 +477,10 @@ reports the version of ncurses which was used in this program, and exits.
 \fB\-v\fR \fIn\fR
 prints out tracing information on standard error as the program runs.
 Higher values of n induce greater verbosity.
+.TP
+\fB\-W\fR
+By itself, the \fB\-w\fP option will not force long strings to be wrapped.
+Use the \fB\-W\fP option to do this.
 .TP 5
 \fB\-w\fR \fIwidth\fR
 changes the output to \fIwidth\fR characters.

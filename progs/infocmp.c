@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2014,2015 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2015,2016 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -42,10 +42,7 @@
 
 #include <dump_entry.h>
 
-MODULE_ID("$Id: infocmp.c,v 1.136 2015/09/05 15:49:57 tom Exp $")
-
-#define L_CURL "{"
-#define R_CURL "}"
+MODULE_ID("$Id: infocmp.c,v 1.140 2016/10/01 19:09:22 tom Exp $")
 
 #define MAX_STRING	1024	/* maximum formatted string */
 
@@ -817,7 +814,7 @@ analyze_string(const char *name, const char *cap, TERMTYPE *tp)
 		cp[0] != '\0' &&
 		cp != cap) {
 		len = strlen(cp);
-		(void) strncpy(buf2, sp, len);
+		_nc_STRNCPY(buf2, sp, len);
 		buf2[len] = '\0';
 
 		if (_nc_capcmp(cp, buf2))
@@ -873,7 +870,7 @@ analyze_string(const char *name, const char *cap, TERMTYPE *tp)
 			? "ECMA+"
 			: "ECMA-"),
 		       sizeof(buf2));
-	    (void) strncpy(buf3, sp + csi, len);
+	    _nc_STRNCPY(buf3, sp + csi, len);
 	    buf3[len] = '\0';
 	    len += (size_t) csi + 1;
 
@@ -894,7 +891,7 @@ analyze_string(const char *name, const char *cap, TERMTYPE *tp)
 			? "DEC+"
 			: "DEC-"),
 		       sizeof(buf2));
-	    (void) strncpy(buf3, sp + csi + 1, len);
+	    _nc_STRNCPY(buf3, sp + csi + 1, len);
 	    buf3[len] = '\0';
 	    len += (size_t) csi + 2;
 
@@ -910,7 +907,7 @@ analyze_string(const char *name, const char *cap, TERMTYPE *tp)
 	    && sp[next] == 'm') {
 
 	    _nc_STRCPY(buf2, "SGR:", sizeof(buf2));
-	    (void) strncpy(buf3, sp + csi, len);
+	    _nc_STRNCPY(buf3, sp + csi, len);
 	    buf3[len] = '\0';
 	    len += (size_t) csi + 1;
 
@@ -989,8 +986,8 @@ file_comparison(int argc, char *argv[])
     int i, n;
 
     memset(heads, 0, sizeof(heads));
-    dump_init((char *) 0, F_LITERAL, S_TERMINFO, 0, 65535, itrace, FALSE,
-	      FALSE, FALSE);
+    dump_init((char *) 0, F_LITERAL, S_TERMINFO,
+	      FALSE, 0, 65535, itrace, FALSE, FALSE, FALSE);
 
     for (n = 0; n < argc && n < MAXCOMPARE; n++) {
 	if (freopen(argv[n], "r", stdin) == 0)
@@ -1186,6 +1183,7 @@ usage(void)
 	,"  -T    eliminate size limits (test)"
 	,"  -U    do not post-process entries"
 	,"  -V    print version"
+	,"  -W    wrap long strings per -w[n]"
 #if NCURSES_XNAMES
 	,"  -a    with -F, list commented-out caps"
 #endif
@@ -1509,6 +1507,7 @@ main(int argc, char *argv[])
     bool init_analyze = FALSE;
     bool suppress_untranslatable = FALSE;
     int quickdump = 0;
+    bool wrap_strings = FALSE;
 
     /* where is the terminfo database location going to default to? */
     restdir = firstdir = 0;
@@ -1530,7 +1529,7 @@ main(int argc, char *argv[])
 
     while ((c = getopt(argc,
 		       argv,
-		       "01A:aB:CcDdEeFfGgIiKLlnpQ:qR:rs:TtUuVv:w:x")) != -1) {
+		       "01A:aB:CcDdEeFfGgIiKLlnpQ:qR:rs:TtUuVv:Ww:x")) != -1) {
 	switch (c) {
 	case '0':
 	    mwidth = 65535;
@@ -1695,6 +1694,10 @@ main(int argc, char *argv[])
 	    set_trace_level(itrace);
 	    break;
 
+	case 'W':
+	    wrap_strings = TRUE;
+	    break;
+
 	case 'w':
 	    mwidth = optarg_to_number();
 	    break;
@@ -1757,7 +1760,8 @@ main(int argc, char *argv[])
     }
 
     /* set up for display */
-    dump_init(tversion, outform, sortmode, mwidth, mheight, itrace,
+    dump_init(tversion, outform, sortmode,
+	      wrap_strings, mwidth, mheight, itrace,
 	      formatted, FALSE, quickdump);
 
     if (!filecompare) {
@@ -1861,8 +1865,8 @@ main(int argc, char *argv[])
 				   tname[0]);
 		if (!quiet)
 		    (void)
-				  printf("#\tReconstructed via infocmp from file: %s\n",
-				  tfile[0]);
+			printf("#\tReconstructed via infocmp from file: %s\n",
+			       tfile[0]);
 		dump_entry(&entries[0].tterm,
 			   suppress_untranslatable,
 			   limited,

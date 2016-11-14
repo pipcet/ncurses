@@ -1,6 +1,6 @@
 #!/bin/sh
 ##############################################################################
-# Copyright (c) 1998-2009,2010 Free Software Foundation, Inc.                #
+# Copyright (c) 1998-2010,2016 Free Software Foundation, Inc.                #
 #                                                                            #
 # Permission is hereby granted, free of charge, to any person obtaining a    #
 # copy of this software and associated documentation files (the "Software"), #
@@ -26,7 +26,7 @@
 # use or other dealings in this Software without prior written               #
 # authorization.                                                             #
 ##############################################################################
-# $Id: MKfallback.sh,v 1.15 2010/08/07 20:32:34 tom Exp $
+# $Id: MKfallback.sh,v 1.16 2016/09/17 21:28:03 tom Exp $
 #
 # MKfallback.sh -- create fallback table for entry reads
 #
@@ -119,17 +119,19 @@ then
     const TERMTYPE	*tp;
 
     for (tp = fallbacks;
-	 	tp < fallbacks + sizeof(fallbacks)/sizeof(TERMTYPE);
-	 	tp++)
-	if (_nc_name_match(tp->term_names, name, "|"))
+	 tp < fallbacks + sizeof(fallbacks)/sizeof(TERMTYPE);
+	 tp++) {
+	if (_nc_name_match(tp->term_names, name, "|")) {
 	    return(tp);
+	}
+    }
 EOF
 else
 	echo "	/* the fallback list is empty */";
 fi
 
 cat <<EOF
-	return((TERMTYPE *)0);
+    return((TERMTYPE *)0);
 }
 EOF
 
