@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /*
- * $Id: curses.priv.h,v 1.553 2016/09/10 21:52:52 Rich.Coe Exp $
+ * $Id: curses.priv.h,v 1.560 2017/02/04 23:21:09 tom Exp $
  *
  *	curses.priv.h
  *
@@ -406,7 +406,7 @@ color_t;
  * option for compiling the tracing into the library.
  */
 #if 1
-#define ColorPair(n)		NCURSES_BITS(n, 0)
+#define ColorPair(n)		(NCURSES_BITS(n, 0) & A_COLOR)
 #define PairNumber(a)		(NCURSES_CAST(int,(((unsigned long)(a) & A_COLOR) >> NCURSES_ATTR_SHIFT)))
 #else
 #define ColorPair(pair)		COLOR_PAIR(pair)
@@ -426,7 +426,7 @@ color_t;
 #define if_EXT_COLORS(stmt)	stmt
 #define SetPair(value,p)	SetPair2((value).ext_color, AttrOf(value), p)
 #define SetPair2(c,a,p)		c = (p), \
-				a = (unColor2(a) | (A_COLOR & (unsigned) ColorPair(oldColor(c))))
+				a = (unColor2(a) | ColorPair(oldColor(c)))
 #define GetPair(value)		GetPair2((value).ext_color, AttrOf(value))
 #define GetPair2(c,a)		((c) ? (c) : PairNumber(a))
 #define oldColor(p)		(((p) > 255) ? 255 : (p))
@@ -440,11 +440,11 @@ color_t;
 
 #define if_EXT_COLORS(stmt)	/* nothing */
 #define SetPair(value,p)	RemAttr(value, A_COLOR), \
-				SetAttr(value, AttrOf(value) | (A_COLOR & (attr_t) ColorPair(p)))
+				SetAttr(value, AttrOf(value) | ColorPair(p))
 #define GetPair(value)		PairNumber(AttrOf(value))
 #define GET_WINDOW_PAIR(w)	PairNumber(WINDOW_ATTRS(w))
 #define SET_WINDOW_PAIR(w,p)	WINDOW_ATTRS(w) &= ALL_BUT_COLOR, \
-				WINDOW_ATTRS(w) |= (A_COLOR & (attr_t) ColorPair(p))
+				WINDOW_ATTRS(w) |= ColorPair(p)
 #define SameAttrOf(a,b)		(AttrOf(a) == AttrOf(b))
 
 #define VIDATTR(sp,attr,pair)	NCURSES_SP_NAME(vidputs)(NCURSES_SP_ARGx attr, NCURSES_OUTC_FUNC)
@@ -901,10 +901,11 @@ typedef struct {
 #endif
 
 #ifdef TRACE
-	bool		init_trace;
+	bool		trace_opened;
 	char		trace_fname[PATH_MAX];
 	int		trace_level;
 	FILE		*trace_fp;
+	int		trace_fd;
 
 	char		*tracearg_buf;
 	size_t		tracearg_used;
@@ -938,6 +939,9 @@ typedef struct {
 #endif
 #if USE_PTHREADS_EINTR
 	pthread_t	read_thread;		/* The reading thread */
+#endif
+#if USE_WIDEC_SUPPORT
+	char		key_name[MB_LEN_MAX + 1];
 #endif
 } NCURSES_GLOBALS;
 
@@ -1248,6 +1252,10 @@ struct screen {
 	ripoff_t	rippedoff[N_RIPS];
 	ripoff_t	*rsp;
 
+#if NCURSES_SP_FUNCS
+	bool		use_tioctl;
+#endif
+
 	/*
 	 * ncurses/ncursesw are the same up to this point.
 	 */
@@ -1258,8 +1266,6 @@ struct screen {
 	bool		_screen_acs_fix;
 	bool		_screen_unicode;
 #endif
-
-	bool		_use_tioctl;
 };
 
 extern NCURSES_EXPORT_VAR(SCREEN *) _nc_screen_chain;
@@ -1651,6 +1657,8 @@ typedef void VoidFunc(void);
 #define returnVoidPtr(code)	TRACE_RETURN1(code,void_ptr)
 #define returnWin(code)		TRACE_RETURN1(code,win)
 
+#define returnDB(code)		do { TR(TRACE_DATABASE,(T_RETURN("code %d"), (code))); return (code); } while (0)
+
 extern NCURSES_EXPORT(NCURSES_BOOL)     _nc_retrace_bool (int);
 extern NCURSES_EXPORT(NCURSES_CONST void *) _nc_retrace_cvoid_ptr (NCURSES_CONST void *);
 extern NCURSES_EXPORT(SCREEN *)         _nc_retrace_sp (SCREEN *);
@@ -1719,6 +1727,8 @@ extern NCURSES_EXPORT(const char *) _nc_viscbuf (const NCURSES_CH_T *, int);
 #define returnVoid		return
 #define returnVoidPtr(code)	return code
 #define returnWin(code)		return code
+
+#define returnDB(code)		return code
 
 #endif /* TRACE/!TRACE */
 
