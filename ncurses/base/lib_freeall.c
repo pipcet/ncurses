@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -39,7 +39,7 @@
 extern int malloc_errfd;	/* FIXME */
 #endif
 
-MODULE_ID("$Id: lib_freeall.c,v 1.64 2016/05/28 23:11:26 tom Exp $")
+MODULE_ID("$Id: lib_freeall.c,v 1.68 2017/08/04 09:01:46 tom Exp $")
 
 /*
  * Free all ncurses data.  This is used for testing only (there's no practical
@@ -52,6 +52,7 @@ NCURSES_SP_NAME(_nc_freeall) (NCURSES_SP_DCL0)
 
     T((T_CALLED("_nc_freeall()")));
 #if NO_LEAKS
+    _nc_globals.leak_checking = TRUE;
     if (SP_PARM != 0) {
 	if (SP_PARM->_oldnum_list != 0) {
 	    FreeAndNull(SP_PARM->_oldnum_list);
@@ -59,6 +60,9 @@ NCURSES_SP_NAME(_nc_freeall) (NCURSES_SP_DCL0)
 	if (SP_PARM->_panelHook.destroy != 0) {
 	    SP_PARM->_panelHook.destroy(SP_PARM->_panelHook.stdscr_pseudo_panel);
 	}
+#if USE_NEW_PAIR
+	_nc_new_pair_leaks(SP_PARM);
+#endif
     }
 #endif
     if (SP_PARM != 0) {
@@ -73,8 +77,19 @@ NCURSES_SP_NAME(_nc_freeall) (NCURSES_SP_DCL0)
 		WINDOW *p_win = &(p->win);
 		bool found = FALSE;
 
+#ifndef USE_SP_WINDOWLIST
+		if (p->screen != SP_PARM)
+		    continue;
+#endif
+
 		for (each_window(SP_PARM, q)) {
 		    WINDOW *q_win = &(q->win);
+
+#ifndef USE_SP_WINDOWLIST
+		    if (q->screen != SP_PARM)
+			continue;
+#endif
+
 		    if ((p != q)
 			&& (q_win->_flags & _SUBWIN)
 			&& (p_win == q_win->_parent)) {
@@ -131,6 +146,7 @@ _nc_freeall(void)
 NCURSES_EXPORT(void)
 NCURSES_SP_NAME(_nc_free_and_exit) (NCURSES_SP_DCLx int code)
 {
+    T((T_CALLED("_nc_free_and_exit(%d)"), code));
     NCURSES_SP_NAME(_nc_flush) (NCURSES_SP_ARG);
     NCURSES_SP_NAME(_nc_freeall) (NCURSES_SP_ARG);
 #ifdef TRACE

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -40,7 +40,7 @@ AUTHOR
    Author: Eric S. Raymond <esr@snark.thyrsus.com> 1993
            Thomas E. Dickey (beginning revision 1.27 in 1996).
 
-$Id: ncurses.c,v 1.446 2016/09/17 21:12:04 tom Exp $
+$Id: ncurses.c,v 1.453 2017/06/24 20:49:44 tom Exp $
 
 ***************************************************************************/
 
@@ -77,7 +77,6 @@ $Id: ncurses.c,v 1.446 2016/09/17 21:12:04 tom Exp $
 
 #ifdef TRACE
 static unsigned save_trace = TRACE_ORDINARY | TRACE_ICALLS | TRACE_CALLS;
-extern unsigned _nc_tracing;
 #endif
 
 #else
@@ -142,7 +141,7 @@ extern unsigned _nc_tracing;
 #define state_unused
 #endif
 
-#define ToggleAcs(temp,real) temp = ((temp == real) ? 0 : real)
+#define ToggleAcs(temp,real) temp = ((temp == real) ? NULL : real)
 
 #define P(string)	printw("%s\n", string)
 
@@ -1312,7 +1311,7 @@ attr_legend(WINDOW *helpwin)
 	      "Toggles:");
     if (use_colors) {
 	MvWPrintw(helpwin, row++, col,
-		  "  f/F/b/F toggle foreground/background background color");
+		  "  f/F/b/B toggle foreground/background background color");
 	MvWPrintw(helpwin, row++, col,
 		  "  t/T     toggle text/background color attribute");
     }
@@ -1575,7 +1574,7 @@ attr_getc(int *skip,
 	    case CTRL('L'):
 		Repaint();
 		break;
-	    case '?':
+	    case HELP_KEY_1:
 		if ((helpwin = newwin(LINES - 1, COLS - 2, 0, 0)) != 0) {
 		    box(helpwin, 0, 0);
 		    attr_legend(helpwin);
@@ -1925,7 +1924,7 @@ wide_attr_getc(int *skip,
 	    case CTRL('L'):
 		Repaint();
 		break;
-	    case '?':
+	    case HELP_KEY_1:
 		if ((helpwin = newwin(LINES - 1, COLS - 2, 0, 0)) != 0) {
 		    box_set(helpwin, 0, 0);
 		    attr_legend(helpwin);
@@ -2387,7 +2386,7 @@ color_test(void)
 		}
 	    }
 	    break;
-	case '?':
+	case HELP_KEY_1:
 	    if ((helpwin = newwin(LINES - 1, COLS - 2, 0, 0)) != 0) {
 		box(helpwin, 0, 0);
 		color_legend(helpwin, FALSE);
@@ -2623,7 +2622,7 @@ wide_color_test(void)
 		}
 	    }
 	    break;
-	case '?':
+	case HELP_KEY_1:
 	    if ((helpwin = newwin(LINES - 1, COLS - 2, 0, 0)) != 0) {
 		box(helpwin, 0, 0);
 		color_legend(helpwin, TRUE);
@@ -2928,7 +2927,7 @@ color_edit(void)
 	    change_color((NCURSES_PAIRS_T) current, field, value, 0);
 	    break;
 
-	case '?':
+	case HELP_KEY_1:
 	    erase();
 	    P("                      RGB Value Editing Help");
 	    P("");
@@ -3172,7 +3171,7 @@ slk_test(void)
 	case 's':
 	    MvPrintw(SLK_WORK, 0, "Press Q to stop the scrolling-test: ");
 	    while ((c = Getchar()) != 'Q' && (c != ERR))
-		addch((chtype) c);
+		AddCh(c);
 	    break;
 
 	case 'd':
@@ -3292,7 +3291,7 @@ wide_slk_test(void)
 	case 's':
 	    MvPrintw(SLK_WORK, 0, "Press Q to stop the scrolling-test: ");
 	    while ((c = Getchar()) != 'Q' && (c != ERR))
-		addch((chtype) c);
+		AddCh(c);
 	    break;
 
 	case 'd':
@@ -3424,7 +3423,7 @@ show_256_chars(int repeat, attr_t attr, NCURSES_PAIRS_T pair)
 	int col = (int) (5 * (code % 16));
 	IGNORE_RC(mvaddch(row, col, colored_chtype(code, attr, pair)));
 	for (count = 1; count < repeat; ++count) {
-	    addch(colored_chtype(code, attr, pair));
+	    AddCh(colored_chtype(code, attr, pair));
 	}
     }
 
@@ -3468,7 +3467,7 @@ show_upper_chars(int base, int pagesize, int repeat, attr_t attr, NCURSES_PAIRS_
 	    if (C1) {
 		/* (yes, this _is_ crude) */
 		while ((reply = Getchar()) != ERR) {
-		    addch(UChar(reply));
+		    AddCh(UChar(reply));
 		    napms(10);
 		}
 		nodelay(stdscr, FALSE);
@@ -3513,7 +3512,7 @@ show_pc_chars(int repeat, attr_t attr, NCURSES_PAIRS_T pair)
 		 */
 		break;
 	    default:
-		addch(colored_chtype(code, A_ALTCHARSET | attr, pair));
+		AddCh(colored_chtype(code, A_ALTCHARSET | attr, pair));
 		break;
 	    }
 	} while (--count > 0);
@@ -3562,7 +3561,7 @@ show_1_acs(int n, int repeat, const char *name, chtype code)
 
     MvPrintw(row, col, "%*s : ", COLS / 4, name);
     do {
-	addch(code);
+	AddCh(code);
     } while (--repeat > 0);
     return n + 1;
 }
@@ -3796,7 +3795,7 @@ show_paged_widechars(int base,
 	setcchar(&temp, codes, attr, pair, 0);
 	move(row, col);
 	if (wcwidth(code) == 0 && code != 0) {
-	    addch((chtype) space |
+	    AddCh((chtype) space |
 		  (A_REVERSE ^ attr) |
 		  (attr_t) COLOR_PAIR(pair));
 	}
@@ -3843,7 +3842,7 @@ show_upper_widechars(int first, int repeat, int space, attr_t attr, NCURSES_PAIR
 	     * the display.
 	     */
 	    if (wcwidth(code) == 0) {
-		addch((chtype) space |
+		AddCh((chtype) space |
 		      (A_REVERSE ^ attr) |
 		      (attr_t) COLOR_PAIR(pair));
 	    }
@@ -3984,7 +3983,7 @@ show_wacs_chars_double(int repeat, attr_t attr, NCURSES_PAIRS_T pair)
     n = show_1_wacs(n, repeat, BOTH2(WACS_DEGREE));
     n = show_1_wacs(n, repeat, BOTH2(WACS_DIAMOND));
     n = show_1_wacs(n, repeat, BOTH2(WACS_PLMINUS));
-    n = show_1_wacs(n, repeat, BOTH2(WACS_PLUS));
+    n = show_1_wacs(n, repeat, BOTH2(WACS_D_PLUS));
 
 #ifdef CURSES_WACS_ARRAY
     n = show_1_wacs(n, repeat, BOTH2(WACS_GEQUAL));
@@ -4045,7 +4044,7 @@ show_wacs_chars_thick(int repeat, attr_t attr, NCURSES_PAIRS_T pair)
     n = show_1_wacs(n, repeat, BOTH2(WACS_DEGREE));
     n = show_1_wacs(n, repeat, BOTH2(WACS_DIAMOND));
     n = show_1_wacs(n, repeat, BOTH2(WACS_PLMINUS));
-    n = show_1_wacs(n, repeat, BOTH2(WACS_PLUS));
+    n = show_1_wacs(n, repeat, BOTH2(WACS_T_PLUS));
 
 #ifdef CURSES_WACS_ARRAY
     n = show_1_wacs(n, repeat, BOTH2(WACS_GEQUAL));
@@ -4551,8 +4550,8 @@ selectcell(int uli, int ulj, int lri, int lrj)
 		    break;
 		}
 	    }
-	    /* FALLTHRU */
 #endif
+	    /* FALLTHRU */
 	default:
 	    res.y = uli + i;
 	    res.x = ulj + j;
@@ -4653,7 +4652,7 @@ delete_framed(FRAME * fp, bool showit)
 	}
 	delwin(fp->wind);
 
-	np = (fp == fp->next) ? 0 : fp->next;
+	np = (fp == fp->next) ? NULL : fp->next;
 	free(fp);
     }
     return np;
@@ -4990,7 +4989,7 @@ mkpanel(NCURSES_COLOR_T color, int rows, int cols, int tly, int tlx)
 	rmpanel(pan)
 --------------------------------------------------------------------------*/
 static void
-rmpanel(PANEL * pan)
+rmpanel(PANEL *pan)
 {
     WINDOW *win = panel_window(pan);
     del_panel(pan);
@@ -5022,7 +5021,7 @@ init_panel(WINDOW *win)
 }
 
 static void
-fill_panel(PANEL * pan)
+fill_panel(PANEL *pan)
 {
     WINDOW *win = panel_window(pan);
     const char *userptr = (const char *) panel_userptr(pan);
@@ -5059,7 +5058,7 @@ init_wide_panel(WINDOW *win)
 }
 
 static void
-fill_wide_panel(PANEL * pan)
+fill_wide_panel(PANEL *pan)
 {
     WINDOW *win = panel_window(pan);
     const char *userptr = (const char *) panel_userptr(pan);
@@ -5082,7 +5081,7 @@ fill_wide_panel(PANEL * pan)
 #define MAX_PANELS 5
 
 static void
-canned_panel(PANEL * px[MAX_PANELS + 1], NCURSES_CONST char *cmd)
+canned_panel(PANEL *px[MAX_PANELS + 1], NCURSES_CONST char *cmd)
 {
     int which = cmd[1] - '0';
 
@@ -5372,8 +5371,8 @@ panner(WINDOW *pad,
 	    erase();
 
 	    /* FALLTHRU */
-	case '?':
-	    if (c == '?')
+	case HELP_KEY_1:
+	    if (c == HELP_KEY_1)
 		show_panner_legend = !show_panner_legend;
 	    panner_legend(LINES - 4);
 	    panner_legend(LINES - 3);
@@ -6128,7 +6127,7 @@ make_field(int frow, int fcol, int rows, int cols, bool secure)
 }
 
 static void
-display_form(FORM * f)
+display_form(FORM *f)
 {
     WINDOW *w;
     int rows, cols;
@@ -6146,7 +6145,7 @@ display_form(FORM * f)
 }
 
 static void
-erase_form(FORM * f)
+erase_form(FORM *f)
 {
     WINDOW *w = form_win(f);
     WINDOW *s = form_sub(f);
@@ -6159,7 +6158,7 @@ erase_form(FORM * f)
 }
 
 static int
-edit_secure(FIELD * me, int c)
+edit_secure(FIELD *me, int c)
 {
     int rows, cols, frow, fcol, nrow, nbuf;
 
@@ -6225,7 +6224,7 @@ edit_secure(FIELD * me, int c)
 }
 
 static int
-form_virtualize(FORM * f, WINDOW *w)
+form_virtualize(FORM *f, WINDOW *w)
 {
     /* *INDENT-OFF* */
     static const struct {
@@ -6332,7 +6331,7 @@ form_virtualize(FORM * f, WINDOW *w)
 }
 
 static int
-my_form_driver(FORM * form, int c)
+my_form_driver(FORM *form, int c)
 {
     if (c == (MAX_FORM_COMMAND + 1)
 	&& form_driver(form, REQ_VALIDATION) == E_OK)
@@ -6850,7 +6849,7 @@ overlap_test(void)
 	    state = overlap_help(state, flavor);
 	    break;
 
-	case '?':
+	case HELP_KEY_1:
 	    state = overlap_help(state, flavor);
 	    break;
 
@@ -6883,7 +6882,7 @@ show_string_setting(const char *name, const char *value)
 	addstr("<NULL>");
 	attroff(A_REVERSE);
     }
-    addch('\n');
+    AddCh('\n');
 }
 
 static void
@@ -6897,7 +6896,7 @@ show_number_setting(const char *name, int value)
 	printw("%d", value);
 	attroff(A_REVERSE);
     }
-    addch('\n');
+    AddCh('\n');
 }
 
 static void
@@ -6911,7 +6910,7 @@ show_boolean_setting(const char *name, int value)
 	printw("%d", value);
 	attroff(A_REVERSE);
     }
-    addch('\n');
+    AddCh('\n');
 }
 
 static void

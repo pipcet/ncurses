@@ -464,8 +464,10 @@
 ./doc/html/man/mitem_visible.3x.html
 ./doc/html/man/ncurses.3x.html
 ./doc/html/man/ncurses6-config.1.html
+./doc/html/man/new_pair.3x.html
 ./doc/html/man/panel.3x.html
 ./doc/html/man/resizeterm.3x.html
+./doc/html/man/scr_dump.5.html
 ./doc/html/man/tabs.1.html
 ./doc/html/man/term.5.html
 ./doc/html/man/term.7.html
@@ -475,6 +477,7 @@
 ./doc/html/man/toe.1m.html
 ./doc/html/man/tput.1.html
 ./doc/html/man/tset.1.html
+./doc/html/man/user_caps.5.html
 ./doc/html/man/wresize.3x.html
 ./doc/html/ncurses-intro.html
 ./doc/ncurses-intro.doc
@@ -691,8 +694,10 @@
 ./man/mitem_value.3x
 ./man/mitem_visible.3x
 ./man/ncurses.3x
+./man/new_pair.3x
 ./man/panel.3x
 ./man/resizeterm.3x
+./man/scr_dump.5
 ./man/tabs.1
 ./man/term.5
 ./man/term.7
@@ -703,6 +708,7 @@
 ./man/toe.1m
 ./man/tput.1
 ./man/tset.1
+./man/user_caps.5
 ./man/wresize.3x
 ./menu/Makefile.in
 ./menu/READ.ME
@@ -861,6 +867,7 @@
 ./ncurses/base/lib_winch.c
 ./ncurses/base/lib_window.c
 ./ncurses/base/nc_panel.c
+./ncurses/base/new_pair.c
 ./ncurses/base/resizeterm.c
 ./ncurses/base/safe_sprintf.c
 ./ncurses/base/sigaction.c
@@ -885,6 +892,8 @@
 ./ncurses/llib-ltinfotw
 ./ncurses/llib-ltinfow
 ./ncurses/modules
+./ncurses/new_pair.h
+./ncurses/report_offsets.c
 ./ncurses/tinfo/MKcaptab.awk
 ./ncurses/tinfo/MKcaptab.sh
 ./ncurses/tinfo/MKcodes.awk
@@ -990,6 +999,7 @@
 ./package/debian-mingw/compat
 ./package/debian-mingw/control
 ./package/debian-mingw/copyright
+./package/debian-mingw/mingw32-ncurses6.lintian-overrides
 ./package/debian-mingw/rules
 ./package/debian-mingw/source/format
 ./package/debian-mingw/watch
@@ -997,6 +1007,7 @@
 ./package/debian-mingw64/compat
 ./package/debian-mingw64/control
 ./package/debian-mingw64/copyright
+./package/debian-mingw64/mingw64-ncurses6.lintian-overrides
 ./package/debian-mingw64/rules
 ./package/debian-mingw64/source/format
 ./package/debian-mingw64/watch
@@ -1004,6 +1015,8 @@
 ./package/debian/compat
 ./package/debian/control
 ./package/debian/copyright
+./package/debian/ncurses6.lintian-overrides
+./package/debian/ncursest6.lintian-overrides
 ./package/debian/rules
 ./package/debian/source/format
 ./package/debian/watch
@@ -1088,6 +1101,7 @@
 ./test/demo_forms.txt
 ./test/demo_keyok.c
 ./test/demo_menus.c
+./test/demo_new_pair.c
 ./test/demo_panels.c
 ./test/demo_termcap.c
 ./test/demo_terminfo.c
@@ -1099,6 +1113,8 @@
 ./test/echochar.c
 ./test/edit_field.c
 ./test/edit_field.h
+./test/escherknot.xbm
+./test/extended_color.c
 ./test/filter.c
 ./test/firework.c
 ./test/firstlast.c
@@ -1122,6 +1138,8 @@
 ./test/listused.sh
 ./test/lrtest.c
 ./test/make-tar.sh
+./test/mensetmanus.xbm
+./test/mini.xterm_48x48.xpm
 ./test/mk-test.awk
 ./test/modules
 ./test/movewindow.c
@@ -1151,13 +1169,18 @@
 ./test/package/debian/watch
 ./test/package/mingw-ncurses-examples.spec
 ./test/package/ncurses-examples.spec
+./test/picsmap.c
+./test/popup_msg.c
+./test/popup_msg.h
 ./test/programs
 ./test/railroad.c
 ./test/rain.c
 ./test/redraw.c
 ./test/savescreen.c
 ./test/savescreen.sh
+./test/sp_tinfo.c
 ./test/tclock.c
+./test/terminal.xbm
 ./test/test.priv.h
 ./test/test_add_wchstr.c
 ./test/test_addchstr.c
@@ -1171,6 +1194,7 @@
 ./test/test_opaque.c
 ./test/test_setupterm.c
 ./test/test_sgr.c
+./test/test_termattrs.c
 ./test/test_vid_puts.c
 ./test/test_vidputs.c
 ./test/testaddch.c
@@ -1187,3 +1211,4 @@
 ./test/xterm-16color.dat
 ./test/xterm-256color.dat
 ./test/xterm-88color.dat
+./test/xterm-color_48x48.xpm

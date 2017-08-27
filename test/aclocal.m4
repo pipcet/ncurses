@@ -26,7 +26,7 @@ dnl sale, use or other dealings in this Software without prior written       *
 dnl authorization.                                                           *
 dnl***************************************************************************
 dnl
-dnl $Id: aclocal.m4,v 1.137 2017/01/21 22:18:40 tom Exp $
+dnl $Id: aclocal.m4,v 1.142 2017/08/20 18:12:43 tom Exp $
 dnl
 dnl Author: Thomas E. Dickey
 dnl
@@ -89,7 +89,7 @@ define([CF_ACVERSION_COMPARE],
 [ifelse([$8], , ,[$8])],
 [ifelse([$9], , ,[$9])])])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_ADD_CFLAGS version: 12 updated: 2015/04/12 15:39:00
+dnl CF_ADD_CFLAGS version: 13 updated: 2017/02/25 18:57:40
 dnl -------------
 dnl Copy non-preprocessor flags to $CFLAGS, preprocessor flags to $CPPFLAGS
 dnl The second parameter if given makes this macro verbose.
@@ -119,10 +119,10 @@ case $cf_fix_cppflags in
 				&& cf_fix_cppflags=yes
 
 			if test $cf_fix_cppflags = yes ; then
-				cf_new_extra_cppflags="$cf_new_extra_cppflags $cf_add_cflags"
+				CF_APPEND_TEXT(cf_new_extra_cppflags,$cf_add_cflags)
 				continue
 			elif test "${cf_tst_cflags}" = "\"'" ; then
-				cf_new_extra_cppflags="$cf_new_extra_cppflags $cf_add_cflags"
+				CF_APPEND_TEXT(cf_new_extra_cppflags,$cf_add_cflags)
 				continue
 			fi
 			;;
@@ -137,17 +137,17 @@ case $cf_fix_cppflags in
 				CF_REMOVE_DEFINE(CPPFLAGS,$CPPFLAGS,$cf_tst_cppflags)
 				;;
 			esac
-			cf_new_cppflags="$cf_new_cppflags $cf_add_cflags"
+			CF_APPEND_TEXT(cf_new_cppflags,$cf_add_cflags)
 			;;
 		esac
 		;;
 	(*)
-		cf_new_cflags="$cf_new_cflags $cf_add_cflags"
+		CF_APPEND_TEXT(cf_new_cflags,$cf_add_cflags)
 		;;
 	esac
 	;;
 (yes)
-	cf_new_extra_cppflags="$cf_new_extra_cppflags $cf_add_cflags"
+	CF_APPEND_TEXT(cf_new_extra_cppflags,$cf_add_cflags)
 
 	cf_tst_cflags=`echo ${cf_add_cflags} |sed -e 's/^[[^"]]*"'\''//'`
 
@@ -160,17 +160,17 @@ done
 
 if test -n "$cf_new_cflags" ; then
 	ifelse([$2],,,[CF_VERBOSE(add to \$CFLAGS $cf_new_cflags)])
-	CFLAGS="$CFLAGS $cf_new_cflags"
+	CF_APPEND_TEXT(CFLAGS,$cf_new_cflags)
 fi
 
 if test -n "$cf_new_cppflags" ; then
 	ifelse([$2],,,[CF_VERBOSE(add to \$CPPFLAGS $cf_new_cppflags)])
-	CPPFLAGS="$CPPFLAGS $cf_new_cppflags"
+	CF_APPEND_TEXT(CPPFLAGS,$cf_new_cppflags)
 fi
 
 if test -n "$cf_new_extra_cppflags" ; then
 	ifelse([$2],,,[CF_VERBOSE(add to \$EXTRA_CPPFLAGS $cf_new_extra_cppflags)])
-	EXTRA_CPPFLAGS="$cf_new_extra_cppflags $EXTRA_CPPFLAGS"
+	CF_APPEND_TEXT(EXTRA_CPPFLAGS,$cf_new_extra_cppflags)
 fi
 
 AC_SUBST(EXTRA_CPPFLAGS)
@@ -341,6 +341,16 @@ ifelse([$5],NONE,,[(test -z "$5" || test x$5 = xNONE || test "x$4" != "x$5") &&]
 }
 ])dnl
 dnl ---------------------------------------------------------------------------
+dnl CF_APPEND_TEXT version: 1 updated: 2017/02/25 18:58:55
+dnl --------------
+dnl use this macro for appending text without introducing an extra blank at
+dnl the beginning
+define([CF_APPEND_TEXT],
+[
+	test -n "[$]$1" && $1="[$]$1 "
+	$1="[$]{$1}$2"
+])dnl
+dnl ---------------------------------------------------------------------------
 dnl CF_ARG_DISABLE version: 3 updated: 1999/03/30 17:24:31
 dnl --------------
 dnl Allow user to disable a normally-on option.
@@ -376,7 +386,7 @@ ifelse([$3],,[    :]dnl
 ])dnl
 ])])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_CC_ENV_FLAGS version: 6 updated: 2016/08/29 20:57:00
+dnl CF_CC_ENV_FLAGS version: 7 updated: 2017/02/25 18:57:40
 dnl ---------------
 dnl Check for user's environment-breakage by stuffing CFLAGS/CPPFLAGS content
 dnl into CC.  This will not help with broken scripts that wrap the compiler
@@ -399,13 +409,14 @@ case "$CC" in
 	AC_MSG_RESULT(broken)
 	AC_MSG_WARN(your environment misuses the CC variable to hold CFLAGS/CPPFLAGS options)
 	# humor him...
-	cf_flags=`echo "$CC" | sed -e 's/^.*[[ 	]]\(-[[^ 	]]\)/\1/'`
-	CC=`echo "$CC " | sed -e 's/[[ 	]]-[[^ 	]].*$//' -e 's/[[ 	]]*$//'`
+	cf_prog=`echo "$CC" | sed -e 's/	/ /g' -e 's/[[ ]]* / /g' -e 's/[[ ]]*[[ ]]-[[^ ]].*//'`
+	cf_flags=`echo "$CC" | ${AWK:-awk} -v prog="$cf_prog" '{ printf("%s", substr([$]0,1+length(prog))); }'`
+	CC="$cf_prog"
 	for cf_arg in $cf_flags
 	do
 		case "x$cf_arg" in
 		(x-[[IUDfgOW]]*)
-			CF_ADD_CFLAGS($cf_flags)
+			CF_ADD_CFLAGS($cf_arg)
 			;;
 		(*)
 			CC="$CC $cf_arg"
@@ -546,50 +557,60 @@ done
 test "$cf_cv_curses_acs_map" != unknown && AC_DEFINE_UNQUOTED(CURSES_ACS_ARRAY,$cf_cv_curses_acs_map,[Define as needed to override ncurses prefix _nc_])
 ])
 dnl ---------------------------------------------------------------------------
-dnl CF_CURSES_CHECK_DATA version: 5 updated: 2014/07/19 18:41:17
+dnl CF_CURSES_CHECK_DATA version: 6 updated: 2017/07/28 19:05:31
 dnl --------------------
 dnl Check if curses.h defines the given data/variable.
 dnl Use this after CF_NCURSES_CONFIG or CF_CURSES_CONFIG.
+dnl
+dnl $1 = data item(s) to check for
+dnl $2 = action on success, e.g., "break" to quit checking a series of choices
 AC_DEFUN([CF_CURSES_CHECK_DATA],
 [
-AC_MSG_CHECKING(for data $1 declaration in ${cf_cv_ncurses_header:-curses.h})
+for cf_data in $1
+do
+AC_MSG_CHECKING(for data $cf_data declaration in ${cf_cv_ncurses_header:-curses.h})
 
 AC_TRY_COMPILE(CF__CURSES_HEAD,[
-void *foo = &($1)
-],cf_result=yes,cf_result=no)
+void *foo = &($cf_data)
+],[cf_result=yes
+],[cf_result=no])
 AC_MSG_RESULT($cf_result)
 
 if test $cf_result = yes ; then
-	CF_UPPER(cf_result,have_curses_data_$1)
+	CF_UPPER(cf_result,have_curses_data_$cf_data)
 	AC_DEFINE_UNQUOTED($cf_result)
+	ifelse($2,,,[$2])
 else
-	AC_MSG_CHECKING(for data $1 in library)
+	AC_MSG_CHECKING(for data $cf_data in library)
 	# BSD linkers insist on making weak linkage, but resolve at runtime.
 	AC_TRY_RUN(CF__CURSES_HEAD
 [
-extern char $1;
+extern char $cf_data;
 int main(void)
 {
-	void *foo = &($1);
-	fprintf(stderr, "testing linkage of $1:%p\n", foo);
+	void *foo = &($cf_data);
+	fprintf(stderr, "testing linkage of $cf_data:%p\n", foo);
 	${cf_cv_main_return:-return}(foo == 0);
-}],[cf_result=yes],[cf_result=no],[
+}],[cf_result=yes
+],[cf_result=no],[
 	# cross-compiling
 	AC_TRY_LINK(CF__CURSES_HEAD
-[extern char $1;],[
+[extern char $cf_data;],[
 	do {
-		void *foo = &($1);
-		fprintf(stderr, "testing linkage of $1:%p\n", foo);
+		void *foo = &($cf_data);
+		fprintf(stderr, "testing linkage of $cf_data:%p\n", foo);
 		${cf_cv_main_return:-return}(foo == 0);
 	} while (0)
 ],[cf_result=yes],[cf_result=no])
 ])
 	AC_MSG_RESULT($cf_result)
 	if test $cf_result = yes ; then
-		CF_UPPER(cf_result,decl_curses_data_$1)
+		CF_UPPER(cf_result,decl_curses_data_$cf_data)
 		AC_DEFINE_UNQUOTED($cf_result)
+		# do not exit loop here, since we prefer system's declarations
 	fi
 fi
+done
 ])dnl
 dnl ---------------------------------------------------------------------------
 dnl CF_CURSES_CHECK_TYPE version: 4 updated: 2012/10/06 16:39:58
@@ -817,36 +838,35 @@ if test ".$ac_cv_func_initscr" != .yes ; then
 	then
 		for cf_curs_lib in $cf_check_list xcurses jcurses pdcurses unknown
 		do
-			AC_CHECK_LIB($cf_curs_lib,initscr,[break])
+			LIBS="-l$cf_curs_lib $cf_save_LIBS"
+			if test "$cf_term_lib" = unknown ; then
+				AC_MSG_CHECKING(if we can link with $cf_curs_lib library)
+				AC_TRY_LINK([#include <${cf_cv_ncurses_header:-curses.h}>],
+					[initscr()],
+					[cf_result=yes],
+					[cf_result=no])
+				AC_MSG_RESULT($cf_result)
+				test $cf_result = yes && break
+			elif test "$cf_curs_lib" = "$cf_term_lib" ; then
+				cf_result=no
+			elif test "$cf_term_lib" != predefined ; then
+				AC_MSG_CHECKING(if we need both $cf_curs_lib and $cf_term_lib libraries)
+				AC_TRY_LINK([#include <${cf_cv_ncurses_header:-curses.h}>],
+					[initscr(); tgoto((char *)0, 0, 0);],
+					[cf_result=no],
+					[
+					LIBS="-l$cf_curs_lib -l$cf_term_lib $cf_save_LIBS"
+					AC_TRY_LINK([#include <${cf_cv_ncurses_header:-curses.h}>],
+						[initscr()],
+						[cf_result=yes],
+						[cf_result=error])
+					])
+				AC_MSG_RESULT($cf_result)
+				test $cf_result != error && break
+			fi
 		done
 	fi
 	test $cf_curs_lib = unknown && AC_MSG_ERROR(no curses library found)
-
-	LIBS="-l$cf_curs_lib $cf_save_LIBS"
-	if test "$cf_term_lib" = unknown ; then
-		AC_MSG_CHECKING(if we can link with $cf_curs_lib library)
-		AC_TRY_LINK([#include <${cf_cv_ncurses_header:-curses.h}>],
-			[initscr()],
-			[cf_result=yes],
-			[cf_result=no])
-		AC_MSG_RESULT($cf_result)
-		test $cf_result = no && AC_MSG_ERROR(Cannot link curses library)
-	elif test "$cf_curs_lib" = "$cf_term_lib" ; then
-		:
-	elif test "$cf_term_lib" != predefined ; then
-		AC_MSG_CHECKING(if we need both $cf_curs_lib and $cf_term_lib libraries)
-		AC_TRY_LINK([#include <${cf_cv_ncurses_header:-curses.h}>],
-			[initscr(); tgoto((char *)0, 0, 0);],
-			[cf_result=no],
-			[
-			LIBS="-l$cf_curs_lib -l$cf_term_lib $cf_save_LIBS"
-			AC_TRY_LINK([#include <${cf_cv_ncurses_header:-curses.h}>],
-				[initscr()],
-				[cf_result=yes],
-				[cf_result=error])
-			])
-		AC_MSG_RESULT($cf_result)
-	fi
 fi
 fi
 
@@ -1358,7 +1378,7 @@ ifelse([$5],,AC_MSG_WARN(Cannot find $3 library),[$5])
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_FUNC_CURSES_VERSION version: 6 updated: 2012/10/06 16:39:58
+dnl CF_FUNC_CURSES_VERSION version: 7 updated: 2017/05/10 18:31:29
 dnl ----------------------
 dnl Solaris has a data item 'curses_version', which confuses AC_CHECK_FUNCS.
 dnl It's a character string "SVR4", not documented.
@@ -1367,7 +1387,7 @@ AC_DEFUN([CF_FUNC_CURSES_VERSION],
 AC_CACHE_CHECK(for function curses_version, cf_cv_func_curses_version,[
 AC_TRY_RUN([
 #include <${cf_cv_ncurses_header:-curses.h}>
-int main()
+int main(void)
 {
 	char temp[1024];
 	sprintf(temp, "%s\n", curses_version());
@@ -2037,7 +2057,7 @@ printf("old\n");
 	,[$1=no])
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_NCURSES_CONFIG version: 17 updated: 2015/07/07 04:22:07
+dnl CF_NCURSES_CONFIG version: 18 updated: 2017/07/23 18:30:00
 dnl -----------------
 dnl Tie together the configure-script macros for ncurses, preferring these in
 dnl order:
@@ -2085,6 +2105,7 @@ if test "x${PKG_CONFIG:=none}" != xnone; then
 			AC_DEFINE(NCURSES,1,[Define to 1 if we are using ncurses headers/libraries])
 			NCURSES_CONFIG_PKG=$cf_ncuconfig_root
 		fi
+		CF_TERM_HEADER
 
 	else
 		AC_MSG_RESULT(no)
@@ -2365,7 +2386,7 @@ then
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_NCURSES_VERSION version: 14 updated: 2012/10/06 08:57:51
+dnl CF_NCURSES_VERSION version: 15 updated: 2017/05/09 19:26:10
 dnl ------------------
 dnl Check for the version of ncurses, to aid in reporting bugs, etc.
 dnl Call CF_CURSES_CPPFLAGS first, or CF_NCURSES_CPPFLAGS.  We don't use
@@ -2380,7 +2401,7 @@ AC_CACHE_CHECK(for ncurses version, cf_cv_ncurses_version,[
 	AC_TRY_RUN([
 #include <${cf_cv_ncurses_header:-curses.h}>
 #include <stdio.h>
-int main()
+int main(void)
 {
 	FILE *fp = fopen("$cf_tempfile", "w");
 #ifdef NCURSES_VERSION

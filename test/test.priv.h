@@ -29,7 +29,7 @@
 /****************************************************************************
  *  Author: Thomas E. Dickey                    1996-on                     *
  ****************************************************************************/
-/* $Id: test.priv.h,v 1.139 2017/02/11 16:33:09 tom Exp $ */
+/* $Id: test.priv.h,v 1.148 2017/08/20 16:51:33 tom Exp $ */
 
 #ifndef __TEST_PRIV_H
 #define __TEST_PRIV_H 1
@@ -58,6 +58,10 @@
 /*
  * Fallback definitions to accommodate broken compilers.
  */
+#ifndef HAVE_ALLOC_PAIR
+#define HAVE_ALLOC_PAIR 0
+#endif
+
 #ifndef HAVE_ASSUME_DEFAULT_COLORS
 #define HAVE_ASSUME_DEFAULT_COLORS 0
 #endif
@@ -65,12 +69,21 @@
 #ifndef HAVE_BSD_STRING_H
 #define HAVE_BSD_STRING_H 0
 #endif
+
 #ifndef HAVE_CURSES_VERSION
 #define HAVE_CURSES_VERSION 0
 #endif
 
+#ifndef HAVE_CURSCR
+#define HAVE_CURSCR 0
+#endif
+
 #ifndef HAVE_CHGAT
 #define HAVE_CHGAT 0
+#endif
+
+#ifndef HAVE_COLOR_CONTENT
+#define HAVE_COLOR_CONTENT 0
 #endif
 
 #ifndef HAVE_COLOR_SET
@@ -107,6 +120,10 @@
 
 #ifndef HAVE_GETWIN
 #define HAVE_GETWIN 0
+#endif
+
+#ifndef HAVE_INIT_EXTENDED_COLOR
+#define HAVE_INIT_EXTENDED_COLOR 0
 #endif
 
 #ifndef HAVE_LIBFORM
@@ -189,12 +206,20 @@
 #define HAVE_SLK_INIT 0
 #endif
 
+#ifndef HAVE_STDINT_H
+#define HAVE_STDINT_H 0
+#endif
+
 #ifndef HAVE_SYS_IOCTL_H
 #define HAVE_SYS_IOCTL_H 0
 #endif
 
 #ifndef HAVE_SYS_SELECT_H
 #define HAVE_SYS_SELECT_H 0
+#endif
+
+#ifndef HAVE_TDESTROY
+#define HAVE_TDESTROY 0
 #endif
 
 #ifndef HAVE_TERMATTRS
@@ -223,6 +248,14 @@
 
 #ifndef HAVE_TIGETSTR
 #define HAVE_TIGETSTR 0
+#endif
+
+#ifndef HAVE_TPUTS_SP
+#define HAVE_TPUTS_SP 0
+#endif
+
+#ifndef HAVE_TSEARCH
+#define HAVE_TSEARCH 0
 #endif
 
 #ifndef HAVE_TYPEAHEAD
@@ -263,6 +296,10 @@
 
 #ifndef HAVE_WRESIZE
 #define HAVE_WRESIZE 0
+#endif
+
+#ifndef HAVE__TRACEF
+#define HAVE__TRACEF 0
 #endif
 
 #ifndef NCURSES_EXT_FUNCS
@@ -536,6 +573,14 @@ extern int optind;
 #define	WACS_STERLING	&(CURSES_WACS_ARRAY['}'])
 #endif
 
+#ifndef OK
+#define OK (0)
+#endif
+
+#ifndef ERR
+#define ERR (-1)
+#endif
+
 #undef CTRL
 #define CTRL(x)	((x) & 0x1f)
 
@@ -545,6 +590,9 @@ extern int optind;
 #ifndef KEY_MIN
 #define KEY_MIN 256		/* not defined in Solaris 8 */
 #endif
+
+#define HELP_KEY_1	'?'
+#define HELP_KEY_2	KEY_F(1)
 
 /* from nc_string.h, to make this stand alone */
 #if HAVE_BSD_STRING_H
@@ -891,27 +939,39 @@ extern char *tgoto(char *, int, int);	/* available, but not prototyped */
 #define WANT_USE_SCREEN() extern void _nc_want_use_screen(void)
 #endif
 
-#ifdef TRACE
+#if defined(TRACE) && HAVE__TRACEF
 #define Trace(p) _tracef p
 #define USE_TRACE 1
+#define START_TRACE() \
+	if ((_nc_tracing & TRACE_MAXIMUM) == 0) { \
+	    int t = _nc_getenv_num("NCURSES_TRACE"); \
+	    if (t >= 0) \
+		trace((unsigned) t); \
+	}
+extern unsigned _nc_tracing;
+extern int _nc_getenv_num(const char *);
 #else
+#undef TRACE
 #define Trace(p)		/* nothing */
 #define USE_TRACE 0
+#define START_TRACE()		/* nothing */
 #endif
 
 #define Trace2(p)		/* nothing */
 
-#define MvAddCh         (void) mvaddch
-#define MvWAddCh        (void) mvwaddch
-#define MvAddStr        (void) mvaddstr
-#define MvWAddStr       (void) mvwaddstr
-#define MvWAddChStr     (void) mvwaddchstr
-#define MvPrintw        (void) mvprintw
-#define MvWPrintw       (void) mvwprintw
-#define MvHLine         (void) mvhline
-#define MvWHLine        (void) mvwhline
-#define MvVLine         (void) mvvline
-#define MvWVLine        (void) mvwvline
+#define AddCh(c)		(void) addch((chtype)(c))
+#define WAddCh(w,c)		(void) waddch((w),(chtype)(c))
+#define MvAddCh(y,x,c)		(void) mvaddch((y),(x),(chtype)(c))
+#define MvWAddCh(w,y,x,c)	(void) mvwaddch((w),(y),(x),(chtype)(c))
+#define MvAddStr(y,x,s)		(void) mvaddstr((y),(x),(s))
+#define MvWAddStr(w,y,x,s)	(void) mvwaddstr((w),(y),(x),(s))
+#define MvWAddChStr(w,y,x,s)	(void) mvwaddchstr((w),(y),(x),(s))
+#define MvPrintw		(void) mvprintw
+#define MvWPrintw		(void) mvwprintw
+#define MvHLine			(void) mvhline
+#define MvWHLine		(void) mvwhline
+#define MvVLine			(void) mvvline
+#define MvWVLine		(void) mvwvline
 
 /*
  * The macro likely uses unsigned values, while X/Open prototype uses int.

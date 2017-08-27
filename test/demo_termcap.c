@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2005-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 2005-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -29,7 +29,7 @@
 /*
  * Author: Thomas E. Dickey
  *
- * $Id: demo_termcap.c,v 1.51 2016/09/10 21:22:39 tom Exp $
+ * $Id: demo_termcap.c,v 1.54 2017/04/13 09:12:40 tom Exp $
  *
  * A simple demo of the termcap interface.
  */
@@ -157,6 +157,7 @@ next_dbitem(void)
     return result;
 }
 
+#if NO_LEAKS
 static void
 free_dblist(void)
 {
@@ -168,6 +169,7 @@ free_dblist(void)
 	db_list = 0;
     }
 }
+#endif /* NO_LEAKS */
 
 static void
 show_string(const char *name, const char *value)
@@ -359,7 +361,7 @@ demo_termcap(NCURSES_CONST char *name)
 #ifdef NCURSES_VERSION
 	if (x_opt && (my_blob == 0) && y_opt) {
 #if NCURSES_XNAMES
-	    TERMTYPE *term = &(cur_term->type);
+	    TERMTYPE *term = (TERMTYPE *) cur_term;
 	    if (term != 0
 		&& ((NUM_BOOLEANS(term) != BOOLCOUNT)
 		    || (NUM_NUMBERS(term) != NUMCOUNT)
@@ -715,7 +717,18 @@ copy_code_list(NCURSES_CONST char *const *list)
 
     return result;
 }
-#endif
+
+#if NO_LEAKS
+static void
+free_code_list(char **list)
+{
+    if (list) {
+	free(list[0]);
+	free(list);
+    }
+}
+#endif /* NO_LEAKS */
+#endif /* USE_CODE_LISTS */
 
 static void
 usage(void)
@@ -871,11 +884,18 @@ main(int argc, char *argv[])
 	show_number("PC", PC);
 	show_string("UP", UP);
 	show_string("BC", BC);
-	show_number("ospeed", ospeed);
+	show_number("ospeed", (int) ospeed);
     }
 #endif
 
+#if NO_LEAKS
     free_dblist();
+#if USE_CODE_LISTS
+    free_code_list(my_boolcodes);
+    free_code_list(my_numcodes);
+    free_code_list(my_strcodes);
+#endif
+#endif /* NO_LEAKS */
 
     ExitProgram(EXIT_SUCCESS);
 }

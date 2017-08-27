@@ -43,6 +43,8 @@
  *
  *-----------------------------------------------------------------*/
 
+#define NEW_PAIR_INTERNAL 1
+
 #include <curses.priv.h>
 
 #ifndef CUR
@@ -82,7 +84,7 @@
 
 #include <ctype.h>
 
-MODULE_ID("$Id: tty_update.c,v 1.286 2017/02/12 17:15:15 tom Exp $")
+MODULE_ID("$Id: tty_update.c,v 1.294 2017/07/31 21:06:04 tom Exp $")
 
 /*
  * This define controls the line-breakout optimization.  Every once in a
@@ -578,14 +580,15 @@ can_clear_with(NCURSES_SP_DCLx ARG_CH_T ch)
 
 	if (!SP_PARM->_default_color)
 	    return FALSE;
-	if (SP_PARM->_default_fg != C_MASK || SP_PARM->_default_bg != C_MASK)
+	if (!(isDefaultColor(SP_PARM->_default_fg) &&
+	      isDefaultColor(SP_PARM->_default_bg)))
 	    return FALSE;
 	if ((pair = GetPair(CHDEREF(ch))) != 0) {
 	    NCURSES_COLOR_T fg, bg;
 	    if (NCURSES_SP_NAME(pair_content) (NCURSES_SP_ARGx
 					       (short) pair,
 					       &fg, &bg) == ERR
-		|| (fg != C_MASK || bg != C_MASK)) {
+		|| !(isDefaultColor(fg) && isDefaultColor(bg))) {
 		return FALSE;
 	    }
 	}
@@ -663,7 +666,12 @@ EmitRange(NCURSES_SP_DCLx const NCURSES_CH_T * ntext, int num)
 		} else {
 		    return 1;	/* cursor stays in the middle */
 		}
-	    } else if (repeat_char && runcount > SP_PARM->_rep_cost) {
+	    } else if (repeat_char != 0 &&
+#if USE_WIDEC_SUPPORT
+		       (CharOf(ntext0) < ACS_LEN) &&
+#endif
+		       runcount > SP_PARM->_rep_cost) {
+		NCURSES_CH_T temp;
 		bool wrap_possible = (SP_PARM->_curscol + runcount >=
 				      screen_columns(SP_PARM));
 		int rep_count = runcount;
@@ -672,9 +680,16 @@ EmitRange(NCURSES_SP_DCLx const NCURSES_CH_T * ntext, int num)
 		    rep_count--;
 
 		UpdateAttrs(SP_PARM, ntext0);
+		temp = ntext0;
+		if ((AttrOf(temp) & A_ALTCHARSET) &&
+		    SP_PARM->_acs_map != 0) {
+		    SetChar(temp,
+			    SP_PARM->_acs_map[CharOf(temp)],
+			    AttrOf(temp) | A_ALTCHARSET);
+		}
 		NCURSES_SP_NAME(tputs) (NCURSES_SP_ARGx
 					TPARM_2(repeat_char,
-						CharOf(ntext0),
+						CharOf(temp),
 						rep_count),
 					1,
 					NCURSES_SP_NAME(_nc_outch));
@@ -766,9 +781,12 @@ TINFO_DOUPDATE(NCURSES_SP_DCL0)
 
     T((T_CALLED("_nc_tinfo:doupdate(%p)"), (void *) SP_PARM));
 
-    if (SP_PARM == 0)
-	returnCode(ERR);
+    _nc_lock_global(update);
 
+    if (SP_PARM == 0) {
+	_nc_unlock_global(update);
+	returnCode(ERR);
+    }
 #if !USE_REENTRANT
     /*
      * It is "legal" but unlikely that an application could assign a new
@@ -789,9 +807,10 @@ TINFO_DOUPDATE(NCURSES_SP_DCL0)
 
     if (CurScreen(SP_PARM) == 0
 	|| NewScreen(SP_PARM) == 0
-	|| StdScreen(SP_PARM) == 0)
+	|| StdScreen(SP_PARM) == 0) {
+	_nc_unlock_global(update);
 	returnCode(ERR);
-
+    }
 #ifdef TRACE
     if (USE_TRACEF(TRACE_UPDATE)) {
 	if (CurScreen(SP_PARM)->_clear)
@@ -809,7 +828,8 @@ TINFO_DOUPDATE(NCURSES_SP_DCL0)
 	SP_PARM->_fifohold--;
 
 #if USE_SIZECHANGE
-    if (SP_PARM->_endwin || _nc_handle_sigwinch(SP_PARM)) {
+    if ((SP_PARM->_endwin == ewRunning)
+	|| _nc_handle_sigwinch(SP_PARM)) {
 	/*
 	 * This is a transparent extension:  XSI does not address it,
 	 * and applications need not know that ncurses can do it.
@@ -822,7 +842,7 @@ TINFO_DOUPDATE(NCURSES_SP_DCL0)
     }
 #endif
 
-    if (SP_PARM->_endwin) {
+    if (SP_PARM->_endwin == ewSuspend) {
 
 	T(("coming back from shell mode"));
 	NCURSES_SP_NAME(reset_prog_mode) (NCURSES_SP_ARG);
@@ -831,7 +851,7 @@ TINFO_DOUPDATE(NCURSES_SP_DCL0)
 	NCURSES_SP_NAME(_nc_screen_resume) (NCURSES_SP_ARG);
 	SP_PARM->_mouse_resume(SP_PARM);
 
-	SP_PARM->_endwin = FALSE;
+	SP_PARM->_endwin = ewRunning;
     }
 #if USE_TRACE_TIMES
     /* zero the metering machinery */
@@ -1099,6 +1119,7 @@ TINFO_DOUPDATE(NCURSES_SP_DCL0)
 
     _nc_signal_handler(TRUE);
 
+    _nc_unlock_global(update);
     returnCode(OK);
 }
 
@@ -1345,8 +1366,8 @@ TransformLine(NCURSES_SP_DCLx int const lineno)
 		    && unColor(oldLine[n]) == unColor(newLine[n])) {
 		    if (oldPair < SP_PARM->_pair_limit
 			&& newPair < SP_PARM->_pair_limit
-			&& (SP_PARM->_color_pairs[oldPair] ==
-			    SP_PARM->_color_pairs[newPair])) {
+			&& (isSamePair(SP_PARM->_color_pairs[oldPair],
+				       SP_PARM->_color_pairs[newPair]))) {
 			SetPair(oldLine[n], GetPair(newLine[n]));
 		    }
 		}
@@ -2172,16 +2193,16 @@ NCURSES_SP_NAME(_nc_screen_resume) (NCURSES_SP_DCL0)
 	NCURSES_SP_NAME(_nc_reset_colors) (NCURSES_SP_ARG);
 
     /* restore user-defined colors, if any */
-    if (SP_PARM->_color_defs < 0) {
+    if (SP_PARM->_color_defs < 0 && !SP_PARM->_direct_color.value) {
 	int n;
 	SP_PARM->_color_defs = -(SP_PARM->_color_defs);
 	for (n = 0; n < SP_PARM->_color_defs; ++n) {
 	    if (SP_PARM->_color_table[n].init) {
-		NCURSES_SP_NAME(init_color) (NCURSES_SP_ARGx
-					     (short) n,
-					     SP_PARM->_color_table[n].r,
-					     SP_PARM->_color_table[n].g,
-					     SP_PARM->_color_table[n].b);
+		_nc_init_color(SP_PARM,
+			       n,
+			       SP_PARM->_color_table[n].r,
+			       SP_PARM->_color_table[n].g,
+			       SP_PARM->_color_table[n].b);
 	    }
 	}
     }

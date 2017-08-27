@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2006-2012,2014 Free Software Foundation, Inc.              *
+ * Copyright (c) 2006-2014,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +26,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: echochar.c,v 1.10 2014/08/09 22:35:51 tom Exp $
+ * $Id: echochar.c,v 1.13 2017/04/15 13:38:37 tom Exp $
  *
  * Demonstrate the echochar function (compare to dots.c).
  * Thomas Dickey - 2006/11/4
@@ -69,12 +69,14 @@ static void
 set_color(char *my_pairs, int fg, int bg)
 {
     int pair = (fg * COLORS) + bg;
-    if (!my_pairs[pair]) {
-	init_pair((short) pair,
-		  (short) fg,
-		  (short) bg);
+    if (pair < COLOR_PAIRS) {
+	if (!my_pairs[pair]) {
+	    init_pair((short) pair,
+		      (short) fg,
+		      (short) bg);
+	}
+	attron(COLOR_PAIR(pair));
     }
-    attron(COLOR_PAIR(pair));
 }
 
 int
@@ -147,7 +149,7 @@ main(int argc GCC_UNUSED,
 	    }
 	}
 	if (opt_r) {
-	    addch(UChar(p));
+	    AddCh(UChar(p));
 	    refresh();
 	} else {
 	    echochar(UChar(p));
@@ -155,5 +157,6 @@ main(int argc GCC_UNUSED,
 	++total_chars;
     }
     cleanup();
+    free(my_pairs);
     ExitProgram(EXIT_SUCCESS);
 }

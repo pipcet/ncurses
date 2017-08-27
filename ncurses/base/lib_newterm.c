@@ -48,7 +48,7 @@
 
 #include <tic.h>
 
-MODULE_ID("$Id: lib_newterm.c,v 1.94 2017/02/11 17:28:07 tom Exp $")
+MODULE_ID("$Id: lib_newterm.c,v 1.100 2017/07/22 23:19:00 tom Exp $")
 
 #ifdef USE_TERM_DRIVER
 #define NumLabels      InfoOf(SP_PARM).numlabels
@@ -76,6 +76,7 @@ _nc_initscr(NCURSES_SP_DCL0)
 
     /* for extended XPG4 conformance requires cbreak() at this point */
     /* (SVr4 curses does this anyway) */
+    T((T_CALLED("_nc_initscr(%p) ->term %p"), (void *) SP_PARM, (void *) term));
     if (NCURSES_SP_NAME(cbreak) (NCURSES_SP_ARG) == OK) {
 	TTY buf;
 
@@ -93,7 +94,7 @@ _nc_initscr(NCURSES_SP_DCL0)
 	if (result == OK)
 	    term->Nttyb = buf;
     }
-    return result;
+    returnCode(result);
 }
 
 /*
@@ -286,7 +287,7 @@ NCURSES_SP_NAME(newterm) (NCURSES_SP_DCLx
 #else
 	    SP_PARM->_use_meta = FALSE;
 #endif
-	    SP_PARM->_endwin = FALSE;
+	    SP_PARM->_endwin = ewInitial;
 #ifndef USE_TERM_DRIVER
 	    /*
 	     * Check whether we can optimize scrolling under dumb terminals in
@@ -348,6 +349,12 @@ NCURSES_SP_NAME(newterm) (NCURSES_SP_DCLx
 NCURSES_EXPORT(SCREEN *)
 newterm(NCURSES_CONST char *name, FILE *ofp, FILE *ifp)
 {
-    return NCURSES_SP_NAME(newterm) (CURRENT_SCREEN_PRE, name, ofp, ifp);
+    SCREEN *rc;
+    _nc_lock_global(prescreen);
+    START_TRACE();
+    rc = NCURSES_SP_NAME(newterm) (CURRENT_SCREEN_PRE, name, ofp, ifp);
+    _nc_forget_prescr();
+    _nc_unlock_global(prescreen);
+    return rc;
 }
 #endif

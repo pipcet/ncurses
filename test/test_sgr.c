@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2015,2016 Free Software Foundation, Inc.                   *
+ * Copyright (c) 2015-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -29,7 +29,7 @@
 /*
  * Author: Thomas E. Dickey
  *
- * $Id: test_sgr.c,v 1.8 2016/09/04 23:30:56 tom Exp $
+ * $Id: test_sgr.c,v 1.11 2017/06/24 18:35:25 tom Exp $
  *
  * A simple demo of the sgr/sgr0 terminal capabilities.
  */
@@ -49,6 +49,7 @@ failed(const char *msg)
 
 #if HAVE_TIGETSTR
 
+static bool no_init = FALSE;
 static bool q_opt = FALSE;
 
 static char *d_opt;
@@ -118,7 +119,7 @@ next_dbitem(void)
     return result;
 }
 
-#ifdef NO_LEAKS
+#if NO_LEAKS
 static void
 free_dblist(void)
 {
@@ -185,9 +186,16 @@ brute_force(const char *name)
     if (db_list) {
 	putenv(next_dbitem());
     }
+
     if (!q_opt)
 	printf("Terminal type \"%s\"\n", name);
-    setupterm((NCURSES_CONST char *) name, 1, (int *) 0);
+
+    if (no_init) {
+	START_TRACE();
+    } else {
+	setupterm((NCURSES_CONST char *) name, 1, (int *) 0);
+    }
+
     if (!q_opt) {
 	if (strcmp(name, ttytype))
 	    printf("... actual \"%s\"\n", ttytype);
@@ -286,6 +294,9 @@ brute_force(const char *name)
 		}
 	    }
 	}
+	for (count = 0; count < MAXSGR; ++count) {
+	    free(values[count]);
+	}
     }
     del_curterm(cur_term);
 }
@@ -302,6 +313,7 @@ usage(void)
 	"Options:",
 	" -d LIST  colon-separated list of databases to use",
 	" -e NAME  environment variable to set with -d option",
+	" -n       do not initialize terminal, to test error-checking",
 	" -q       quiet (prints only counts)",
     };
     unsigned n;
@@ -317,13 +329,16 @@ main(int argc, char *argv[])
     int n;
     char *name;
 
-    while ((n = getopt(argc, argv, "d:e:q")) != -1) {
+    while ((n = getopt(argc, argv, "d:e:nq")) != -1) {
 	switch (n) {
 	case 'd':
 	    d_opt = optarg;
 	    break;
 	case 'e':
 	    e_opt = optarg;
+	    break;
+	case 'n':
+	    no_init = TRUE;
 	    break;
 	case 'q':
 	    q_opt = TRUE;
@@ -349,7 +364,7 @@ main(int argc, char *argv[])
 
     printf("%ld distinct values\n", total_values);
 
-#ifdef NO_LEAKS
+#if NO_LEAKS
     free_dblist();
 #endif
 

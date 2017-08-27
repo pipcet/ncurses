@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2013,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -56,7 +56,7 @@
 #include <sys/types.h>
 #include <tic.h>
 
-MODULE_ID("$Id: read_termcap.c,v 1.90 2016/09/10 20:13:11 tom Exp $")
+MODULE_ID("$Id: read_termcap.c,v 1.93 2017/04/22 16:11:03 tom Exp $")
 
 #if !PURE_TERMINFO
 
@@ -956,7 +956,7 @@ add_tc(char *termpaths[], char *path, int count)
 #endif /* !USE_GETCAP */
 
 NCURSES_EXPORT(int)
-_nc_read_termcap_entry(const char *const tn, TERMTYPE *const tp)
+_nc_read_termcap_entry(const char *const tn, TERMTYPE2 *const tp)
 {
     int found = TGETENT_NO;
     ENTRY *ep;

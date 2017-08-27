@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2014,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -34,7 +34,7 @@
  * v2.0 featuring strict ANSI/POSIX conformance, November 1993.
  * v2.1 with ncurses mouse support, September 1995
  *
- * $Id: bs.c,v 1.64 2016/08/21 00:03:32 tom Exp $
+ * $Id: bs.c,v 1.68 2017/06/17 18:45:40 tom Exp $
  */
 
 #include <test.priv.h>
@@ -185,6 +185,7 @@ uninitgame(int sig GCC_UNUSED)
     (void) reset_shell_mode();
     (void) echo();
     (void) endwin();
+    free(your_name);
     ExitProgram(sig ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
@@ -219,15 +220,15 @@ intro(void)
     srand((unsigned) (time(0L) + getpid()));	/* Kick the random number generator */
 
     CATCHALL(uninitgame);
+    (void) initscr();
 
     if ((tmpname = getlogin()) != 0 &&
 	(your_name = strdup(tmpname)) != 0) {
 	your_name[0] = (char) toupper(UChar(your_name[0]));
     } else {
-	your_name = dftname;
+	your_name = strdup(dftname);
     }
 
-    (void) initscr();
     keypad(stdscr, TRUE);
     (void) def_prog_mode();
     (void) nonl();
@@ -306,7 +307,7 @@ placeship(int b, ship_t * ss, int vis)
 	board[b][newx][newy] = ss->symbol;
 	if (vis) {
 	    pgoto(newy, newx);
-	    (void) addch((chtype) ss->symbol);
+	    AddCh(ss->symbol);
 	}
     }
     ss->hits = 0;
@@ -371,14 +372,14 @@ initgame(void)
 	if (has_colors())
 	    attron(COLOR_PAIR(COLOR_BLUE));
 #endif /* A_COLOR */
-	(void) addch(' ');
+	AddCh(' ');
 	for (j = 0; j < BWIDTH; j++)
 	    (void) addstr(" . ");
 #ifdef A_COLOR
 	(void) attrset(0);
 #endif /* A_COLOR */
-	(void) addch(' ');
-	(void) addch((chtype) (i + 'A'));
+	AddCh(' ');
+	AddCh(i + 'A');
     }
     MvAddStr(PYBASE + BDEPTH, PXBASE - 3, numbers);
     MvAddStr(CYBASE - 2, CXBASE + 7, "Hit/Miss Board");
@@ -389,14 +390,14 @@ initgame(void)
 	if (has_colors())
 	    attron(COLOR_PAIR(COLOR_BLUE));
 #endif /* A_COLOR */
-	(void) addch(' ');
+	AddCh(' ');
 	for (j = 0; j < BWIDTH; j++)
 	    (void) addstr(" . ");
 #ifdef A_COLOR
 	(void) attrset(0);
 #endif /* A_COLOR */
-	(void) addch(' ');
-	(void) addch((chtype) (i + 'A'));
+	AddCh(' ');
+	AddCh(i + 'A');
     }
 
     MvAddStr(CYBASE + BDEPTH, CXBASE - 3, numbers);
@@ -773,13 +774,13 @@ hitship(int x, int y)
 				    if (has_colors())
 					attron(COLOR_PAIR(COLOR_GREEN));
 #endif /* A_COLOR */
-				    (void) addch(MARK_MISS);
+				    AddCh(MARK_MISS);
 #ifdef A_COLOR
 				    (void) attrset(0);
 #endif /* A_COLOR */
 				} else {
 				    pgoto(y1, x1);
-				    (void) addch(SHOWSPLASH);
+				    AddCh(SHOWSPLASH);
 				}
 			    }
 			}
@@ -792,14 +793,14 @@ hitship(int x, int y)
 		    hits[turn][x1][y1] = ss->symbol;
 		    if (turn % 2 == PLAYER) {
 			cgoto(y1, x1);
-			(void) addch((chtype) (ss->symbol));
+			AddCh(ss->symbol);
 		    } else {
 			pgoto(y1, x1);
 #ifdef A_COLOR
 			if (has_colors())
 			    attron(COLOR_PAIR(COLOR_RED));
 #endif /* A_COLOR */
-			(void) addch(SHOWHIT);
+			AddCh(SHOWHIT);
 #ifdef A_COLOR
 			(void) attrset(0);
 #endif /* A_COLOR */
@@ -841,7 +842,7 @@ plyturn(void)
 	    attron(COLOR_PAIR(COLOR_GREEN));
     }
 #endif /* A_COLOR */
-    (void) addch((chtype) hits[PLAYER][curx][cury]);
+    AddCh(hits[PLAYER][curx][cury]);
 #ifdef A_COLOR
     (void) attrset(0);
 #endif /* A_COLOR */
@@ -889,7 +890,7 @@ sgetc(const char *s)
 	for (s1 = s; *s1 && ch != *s1; ++s1)
 	    continue;
 	if (*s1) {
-	    (void) addch((chtype) ch);
+	    AddCh(ch);
 	    (void) refresh();
 	    return (ch);
 	}
@@ -974,7 +975,7 @@ cpufire(int x, int y)
 	    attron(COLOR_PAIR(COLOR_GREEN));
     }
 #endif /* A_COLOR */
-    (void) addch((chtype) (hit ? SHOWHIT : SHOWSPLASH));
+    AddCh((hit ? SHOWHIT : SHOWSPLASH));
 #ifdef A_COLOR
     (void) attrset(0);
 #endif /* A_COLOR */
@@ -1002,7 +1003,7 @@ cputurn(void)
 #define REVERSE_JUMP	4
 #define SECOND_PASS	5
     static int next = RANDOM_FIRE;
-    static bool used[4];
+    static bool used[5];
     static ship_t ts;
     int navail, x, y, d, n;
     int hit = S_MISS;
@@ -1038,10 +1039,10 @@ cputurn(void)
 	    goto refire;	/* ...so we must random-fire */
 	else {
 	    n = rnd(navail) + 1;
-	    for (d = 0; used[d]; d++) ;
+	    for (d = 0; d < 4 && used[d]; d++) ;
 	    /* used[d] is first that == 0 */
 	    for (; n > 1; n--)
-		while (used[++d]) ;
+		while (d < 4 && used[++d]) ;
 	    /* used[d] is next that == 0 */
 
 	    assert(d < 4);
@@ -1127,7 +1128,7 @@ playagain(void)
     for (ss = cpuship; ss < cpuship + SHIPTYPES; ss++)
 	for (j = 0; j < ss->length; j++) {
 	    cgoto(ss->y + j * yincr[ss->dir], ss->x + j * xincr[ss->dir]);
-	    (void) addch((chtype) ss->symbol);
+	    AddCh(ss->symbol);
 	}
 
     if (awinna())

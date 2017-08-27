@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2014,2015 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2015,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -30,7 +30,7 @@
  *  Author: Thomas E. Dickey                    1997-on                     *
  ****************************************************************************/
 /*
- * $Id: progs.priv.h,v 1.41 2015/05/23 23:53:55 tom Exp $
+ * $Id: progs.priv.h,v 1.44 2017/07/15 18:26:07 tom Exp $
  *
  *	progs.priv.h
  *
@@ -117,6 +117,9 @@ extern int errno;
 extern char *optarg;
 extern int optind;
 #endif /* HAVE_GETOPT_H */
+
+#define NCURSES_INTERNALS 1
+#define NCURSES_OPAQUE    0
 
 #include <curses.h>
 #include <term_entry.h>
@@ -209,5 +212,13 @@ extern int optind;
 #define UChar(c)    ((unsigned char)(c))
 
 #define SIZEOF(v) (sizeof(v)/sizeof(v[0]))
+
+#define NCURSES_EXT_NUMBERS (NCURSES_EXT_COLORS && HAVE_INIT_EXTENDED_COLOR)
+
+#if NCURSES_EXT_NUMBERS
+#else
+#define _nc_free_termtype2(t) _nc_free_termtype(t)
+#define _nc_read_entry2(n,f,t) _nc_read_entry(n,f,t)
+#endif
 
 #endif /* PROGS_PRIV_H */

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2009-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 2009-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -29,7 +29,7 @@
 /*
  * Author: Thomas E. Dickey
  *
- * $Id: demo_terminfo.c,v 1.44 2016/09/10 21:22:49 tom Exp $
+ * $Id: demo_terminfo.c,v 1.47 2017/04/09 00:27:42 tom Exp $
  *
  * A simple demo of the terminfo interface.
  */
@@ -152,7 +152,7 @@ next_dbitem(void)
     return result;
 }
 
-#ifdef NO_LEAKS
+#if NO_LEAKS
 static void
 free_dblist(void)
 {
@@ -363,7 +363,7 @@ demo_terminfo(char *name)
 	int mod;
 	if (y_opt) {
 #if NCURSES_XNAMES
-	    TERMTYPE *term = &(cur_term->type);
+	    TERMTYPE *term = (TERMTYPE *) cur_term;
 	    if (term != 0
 		&& ((NUM_BOOLEANS(term) != BOOLCOUNT)
 		    || (NUM_NUMBERS(term) != NUMCOUNT)
@@ -751,7 +751,18 @@ copy_code_list(NCURSES_CONST char *const *list)
 
     return result;
 }
+
+#if NO_LEAKS
+static void
+free_code_list(char **list)
+{
+    if (list) {
+	free(list[0]);
+	free(list);
+    }
+}
 #endif
+#endif /* USE_CODE_LISTS */
 
 static void
 usage(void)
@@ -904,17 +915,26 @@ main(int argc, char *argv[])
 	   PLURAL(total_n_values),
 	   PLURAL(total_s_values));
 
-#ifdef NO_LEAKS
+#if NO_LEAKS
     free_dblist();
-    if (my_blob != 0) {
-	free(my_blob);
-	free(my_boolcodes);
-	free(my_numcodes);
-	free(my_numvalues);
-	free(my_strcodes);
-	free(my_strvalues);
+    if (input_name != 0) {
+	if (my_blob != 0) {
+	    free(my_blob);
+	    free(my_boolcodes);
+	    free(my_numcodes);
+	    free(my_numvalues);
+	    free(my_strcodes);
+	    free(my_strvalues);
+	}
+    }
+#if USE_CODE_LISTS
+    else {
+	free_code_list(my_boolcodes);
+	free_code_list(my_numcodes);
+	free_code_list(my_strcodes);
     }
 #endif
+#endif /* NO_LEAKS */
 
     ExitProgram(EXIT_SUCCESS);
 }

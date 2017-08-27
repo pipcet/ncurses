@@ -28,7 +28,7 @@ dnl***************************************************************************
 dnl
 dnl Author: Thomas E. Dickey 1995-on
 dnl
-dnl $Id: aclocal.m4,v 1.807 2017/02/11 19:48:57 tom Exp $
+dnl $Id: aclocal.m4,v 1.811 2017/08/12 12:06:16 tom Exp $
 dnl Macros used in NCURSES auto-configuration script.
 dnl
 dnl These macros are maintained separately from NCURSES.  The copyright on
@@ -155,7 +155,7 @@ AC_DEFUN([CF_ADD_ADAFLAGS],[
 	AC_SUBST(ADAFLAGS)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_ADD_CFLAGS version: 12 updated: 2015/04/12 15:39:00
+dnl CF_ADD_CFLAGS version: 13 updated: 2017/02/25 18:57:40
 dnl -------------
 dnl Copy non-preprocessor flags to $CFLAGS, preprocessor flags to $CPPFLAGS
 dnl The second parameter if given makes this macro verbose.
@@ -185,10 +185,10 @@ case $cf_fix_cppflags in
 				&& cf_fix_cppflags=yes
 
 			if test $cf_fix_cppflags = yes ; then
-				cf_new_extra_cppflags="$cf_new_extra_cppflags $cf_add_cflags"
+				CF_APPEND_TEXT(cf_new_extra_cppflags,$cf_add_cflags)
 				continue
 			elif test "${cf_tst_cflags}" = "\"'" ; then
-				cf_new_extra_cppflags="$cf_new_extra_cppflags $cf_add_cflags"
+				CF_APPEND_TEXT(cf_new_extra_cppflags,$cf_add_cflags)
 				continue
 			fi
 			;;
@@ -203,17 +203,17 @@ case $cf_fix_cppflags in
 				CF_REMOVE_DEFINE(CPPFLAGS,$CPPFLAGS,$cf_tst_cppflags)
 				;;
 			esac
-			cf_new_cppflags="$cf_new_cppflags $cf_add_cflags"
+			CF_APPEND_TEXT(cf_new_cppflags,$cf_add_cflags)
 			;;
 		esac
 		;;
 	(*)
-		cf_new_cflags="$cf_new_cflags $cf_add_cflags"
+		CF_APPEND_TEXT(cf_new_cflags,$cf_add_cflags)
 		;;
 	esac
 	;;
 (yes)
-	cf_new_extra_cppflags="$cf_new_extra_cppflags $cf_add_cflags"
+	CF_APPEND_TEXT(cf_new_extra_cppflags,$cf_add_cflags)
 
 	cf_tst_cflags=`echo ${cf_add_cflags} |sed -e 's/^[[^"]]*"'\''//'`
 
@@ -226,17 +226,17 @@ done
 
 if test -n "$cf_new_cflags" ; then
 	ifelse([$2],,,[CF_VERBOSE(add to \$CFLAGS $cf_new_cflags)])
-	CFLAGS="$CFLAGS $cf_new_cflags"
+	CF_APPEND_TEXT(CFLAGS,$cf_new_cflags)
 fi
 
 if test -n "$cf_new_cppflags" ; then
 	ifelse([$2],,,[CF_VERBOSE(add to \$CPPFLAGS $cf_new_cppflags)])
-	CPPFLAGS="$CPPFLAGS $cf_new_cppflags"
+	CF_APPEND_TEXT(CPPFLAGS,$cf_new_cppflags)
 fi
 
 if test -n "$cf_new_extra_cppflags" ; then
 	ifelse([$2],,,[CF_VERBOSE(add to \$EXTRA_CPPFLAGS $cf_new_extra_cppflags)])
-	EXTRA_CPPFLAGS="$cf_new_extra_cppflags $EXTRA_CPPFLAGS"
+	CF_APPEND_TEXT(EXTRA_CPPFLAGS,$cf_new_extra_cppflags)
 fi
 
 AC_SUBST(EXTRA_CPPFLAGS)
@@ -394,6 +394,16 @@ ifelse([$5],NONE,,[(test -z "$5" || test x$5 = xNONE || test "x$4" != "x$5") &&]
 }
 ])dnl
 dnl ---------------------------------------------------------------------------
+dnl CF_APPEND_TEXT version: 1 updated: 2017/02/25 18:58:55
+dnl --------------
+dnl use this macro for appending text without introducing an extra blank at
+dnl the beginning
+define([CF_APPEND_TEXT],
+[
+	test -n "[$]$1" && $1="[$]$1 "
+	$1="[$]{$1}$2"
+])dnl
+dnl ---------------------------------------------------------------------------
 dnl CF_ARG_DISABLE version: 3 updated: 1999/03/30 17:24:31
 dnl --------------
 dnl Allow user to disable a normally-on option.
@@ -405,29 +415,6 @@ dnl -------------
 dnl Allow user to enable a normally-off option.
 AC_DEFUN([CF_ARG_ENABLE],
 [CF_ARG_OPTION($1,[$2],[$3],[$4],no)])dnl
-dnl ---------------------------------------------------------------------------
-dnl CF_ARG_OPTION version: 5 updated: 2015/05/10 19:52:14
-dnl -------------
-dnl Restricted form of AC_ARG_ENABLE that ensures user doesn't give bogus
-dnl values.
-dnl
-dnl Parameters:
-dnl $1 = option name
-dnl $2 = help-string
-dnl $3 = action to perform if option is not default
-dnl $4 = action if perform if option is default
-dnl $5 = default option value (either 'yes' or 'no')
-AC_DEFUN([CF_ARG_OPTION],
-[AC_ARG_ENABLE([$1],[$2],[test "$enableval" != ifelse([$5],no,yes,no) && enableval=ifelse([$5],no,no,yes)
-	if test "$enableval" != "$5" ; then
-ifelse([$3],,[    :]dnl
-,[    $3]) ifelse([$4],,,[
-	else
-		$4])
-	fi],[enableval=$5 ifelse([$4],,,[
-	$4
-])dnl
-])])dnl
 dnl ---------------------------------------------------------------------------
 dnl CF_ARG_OPTION version: 5 updated: 2015/05/10 19:52:14
 dnl -------------
@@ -740,7 +727,7 @@ AC_SUBST(BUILD_EXEEXT)
 AC_SUBST(BUILD_OBJEXT)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_CC_ENV_FLAGS version: 6 updated: 2016/08/29 20:57:00
+dnl CF_CC_ENV_FLAGS version: 7 updated: 2017/02/25 18:57:40
 dnl ---------------
 dnl Check for user's environment-breakage by stuffing CFLAGS/CPPFLAGS content
 dnl into CC.  This will not help with broken scripts that wrap the compiler
@@ -763,13 +750,14 @@ case "$CC" in
 	AC_MSG_RESULT(broken)
 	AC_MSG_WARN(your environment misuses the CC variable to hold CFLAGS/CPPFLAGS options)
 	# humor him...
-	cf_flags=`echo "$CC" | sed -e 's/^.*[[ 	]]\(-[[^ 	]]\)/\1/'`
-	CC=`echo "$CC " | sed -e 's/[[ 	]]-[[^ 	]].*$//' -e 's/[[ 	]]*$//'`
+	cf_prog=`echo "$CC" | sed -e 's/	/ /g' -e 's/[[ ]]* / /g' -e 's/[[ ]]*[[ ]]-[[^ ]].*//'`
+	cf_flags=`echo "$CC" | ${AWK:-awk} -v prog="$cf_prog" '{ printf("%s", substr([$]0,1+length(prog))); }'`
+	CC="$cf_prog"
 	for cf_arg in $cf_flags
 	do
 		case "x$cf_arg" in
 		(x-[[IUDfgOW]]*)
-			CF_ADD_CFLAGS($cf_flags)
+			CF_ADD_CFLAGS($cf_arg)
 			;;
 		(*)
 			CC="$CC $cf_arg"
@@ -2798,7 +2786,7 @@ if test "$GXX" = yes; then
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_GXX_VERSION version: 7 updated: 2012/06/16 14:55:39
+dnl CF_GXX_VERSION version: 8 updated: 2017/02/11 14:48:57
 dnl --------------
 dnl Check for version of g++
 AC_DEFUN([CF_GXX_VERSION],[
@@ -3470,7 +3458,7 @@ ifelse($1,,,[$1=$LIB_PREFIX])
 	AC_SUBST(LIB_PREFIX)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_LIB_RULES version: 86 updated: 2015/11/07 20:01:34
+dnl CF_LIB_RULES version: 87 updated: 2017/07/26 17:08:35
 dnl ------------
 dnl Append definitions and rules for the given models to the subdirectory
 dnl Makefiles, and the recursion rule for the top-level Makefile.  If the
@@ -3926,15 +3914,13 @@ CF_EOF
 
 # Special case: tack's manpage lives in its own directory.
 if test "x$cf_with_manpages" = xyes; then
-if test -d tack ; then
-if test -f $srcdir/$tack.h; then
+if test "x$cf_with_tack" = "xyes"; then
 cat >> Makefile <<CF_EOF
 
 install.man \\
 uninstall.man ::
 	cd tack && \${MAKE} \${TOP_MFLAGS} \[$]@
 CF_EOF
-fi
 fi
 fi
 
@@ -4174,7 +4160,7 @@ AC_DEFUN([CF_LIB_TYPE],
 	test -n "$LIB_SUFFIX" && $2="${LIB_SUFFIX}[$]{$2}"
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_LINK_DATAONLY version: 11 updated: 2017/01/21 11:06:25
+dnl CF_LINK_DATAONLY version: 12 updated: 2017/07/23 17:46:07
 dnl ----------------
 dnl Some systems have a non-ANSI linker that doesn't pull in modules that have
 dnl only data (i.e., no functions), for example NeXT.  On those systems we'll
@@ -4196,7 +4182,7 @@ EOF
 	rm -f conftest.$ac_ext data.o
 	cat >conftest.$ac_ext <<EOF
 #line __oline__ "configure"
-int	testfunc()
+int	testfunc(void)
 {
 #if defined(NeXT)
 	${cf_cv_main_return:-return}(1);	/* I'm told this linker is broken */
@@ -4592,7 +4578,7 @@ AC_ARG_WITH(manpage-tbl,
 AC_MSG_RESULT($MANPAGE_TBL)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_MAN_PAGES version: 46 updated: 2015/08/05 20:44:28
+dnl CF_MAN_PAGES version: 47 updated: 2017/08/12 07:58:51
 dnl ------------
 dnl Try to determine if the man-pages on the system are compressed, and if
 dnl so, what format is used.  Use this information to construct a script that
@@ -4665,7 +4651,7 @@ INSTALL_DATA="$INSTALL_DATA"
 transform="$program_transform_name"
 
 TMP=\${TMPDIR:=/tmp}/man\$\$
-trap "rm -f \$TMP" 0 1 2 5 15
+trap "rm -f \$TMP" 0 1 2 3 15
 
 form=\[$]1
 shift || exit 1
@@ -5792,7 +5778,7 @@ CF_VERBOSE(...checked $1 [$]$1)
 AC_SUBST(EXTRA_LDFLAGS)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_SHARED_OPTS version: 89 updated: 2015/08/15 18:38:59
+dnl CF_SHARED_OPTS version: 90 updated: 2017/02/11 14:48:57
 dnl --------------
 dnl --------------
 dnl Attempt to determine the appropriate CC/LD options for creating a shared
@@ -6416,7 +6402,7 @@ if test "$cf_cv_sizechange" != no ; then
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_SRC_MODULES version: 29 updated: 2015/04/12 11:42:01
+dnl CF_SRC_MODULES version: 30 updated: 2017/07/26 17:08:35
 dnl --------------
 dnl For each parameter, test if the source-directory exists, and if it contains
 dnl a 'modules' file.  If so, add to the list $cf_cv_src_modules which we'll
@@ -6448,7 +6434,7 @@ do
 		# We may/may not have tack in the distribution, though the
 		# makefile is.
 		if test $cf_dir = tack ; then
-			if test ! -f $srcdir/${cf_dir}/${cf_dir}.h; then
+			if test "x$cf_with_tack" != "xyes"; then
 				continue
 			fi
 		fi
@@ -7280,7 +7266,7 @@ then
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_WITH_GPM version: 9 updated: 2016/05/28 20:33:31
+dnl CF_WITH_GPM version: 10 updated: 2017/04/29 18:32:18
 dnl -----------
 dnl
 dnl The option parameter (if neither yes/no) is assumed to be the name of
@@ -7302,7 +7288,7 @@ if test "$with_gpm" != no ; then
 			AC_DEFINE(HAVE_LIBGPM,1,[Define to 1 if we have the gpm library])
 			with_gpm=yes
 		else
-			AC_CHECK_LIB(gpm,Gpm_Open,[:],[
+			AC_CHECK_LIB(gpm,Gpm_Open,[with_gpm=yes],[
 				if test "$with_gpm" = maybe; then
 					AC_MSG_WARN(Cannot link with GPM library)
 					with_gpm=no
@@ -7318,7 +7304,7 @@ if test "$with_gpm" != no ; then
 fi
 ])
 dnl ---------------------------------------------------------------------------
-dnl CF_WITH_LIBTOOL version: 34 updated: 2016/12/31 12:04:57
+dnl CF_WITH_LIBTOOL version: 35 updated: 2017/08/12 07:58:51
 dnl ---------------
 dnl Provide a configure option to incorporate libtool.  Define several useful
 dnl symbols for the makefile rules.
@@ -7342,7 +7328,7 @@ dnl
 dnl	LOCAL=aclocal.m4
 dnl	ORIG=aclocal.m4.orig
 dnl
-dnl	trap "mv $ORIG $LOCAL" 0 1 2 5 15
+dnl	trap "mv $ORIG $LOCAL" 0 1 2 3 15
 dnl	rm -f $ORIG
 dnl	mv $LOCAL $ORIG
 dnl

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 1998-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -43,11 +43,10 @@
 #include <curses.priv.h>
 #include <tic.h>
 
-#ifndef CUR
+#undef CUR
 #define CUR SP_TERMTYPE
-#endif
 
-MODULE_ID("$Id: lib_set_term.c,v 1.155 2016/05/28 21:33:38 tom Exp $")
+MODULE_ID("$Id: lib_set_term.c,v 1.166 2017/07/01 16:37:24 tom Exp $")
 
 #ifdef USE_TERM_DRIVER
 #define MaxColors      InfoOf(sp).maxcolors
@@ -183,6 +182,7 @@ delscreen(SCREEN *sp)
 	FreeIfNeeded(sp->_color_table);
 	FreeIfNeeded(sp->_color_pairs);
 
+	FreeIfNeeded(sp->_oldnum_list);
 	FreeIfNeeded(sp->oldhash);
 	FreeIfNeeded(sp->newhash);
 	FreeIfNeeded(sp->hashtab);
@@ -193,6 +193,9 @@ delscreen(SCREEN *sp)
 	NCURSES_SP_NAME(_nc_flush) (NCURSES_SP_ARG);
 	NCURSES_SP_NAME(del_curterm) (NCURSES_SP_ARGx sp->_term);
 	FreeIfNeeded(sp->out_buffer);
+	if (_nc_find_prescr() == sp) {
+	    _nc_forget_prescr();
+	}
 	free(sp);
 
 	/*
@@ -261,7 +264,7 @@ extract_fgbg(const char *src, int *result)
     if ((dst = tmp) == 0) {
 	dst = src;
     } else if (value >= 0) {
-	*result = value;
+	*result = (int) value;
     }
     while (*dst != 0 && *dst != ';')
 	dst++;
@@ -286,6 +289,9 @@ NCURSES_SP_NAME(_nc_setupscreen) (
 				     int filtered,
 				     int slk_format)
 {
+#ifndef USE_TERM_DRIVER
+    static const TTY null_TTY;	/* all zeros iff uninitialized */
+#endif
     char *env;
     int bottom_stolen = 0;
     SCREEN *sp;
@@ -304,6 +310,7 @@ NCURSES_SP_NAME(_nc_setupscreen) (
 
     if (!sp) {
 	sp = _nc_alloc_screen_sp();
+	T(("_nc_alloc_screen_sp %p", (void *) sp));
 	*spp = sp;
     }
     if (!sp
@@ -420,8 +427,8 @@ NCURSES_SP_NAME(_nc_setupscreen) (
     sp->_default_fg = COLOR_WHITE;
     sp->_default_bg = COLOR_BLACK;
 #else
-    sp->_default_fg = C_MASK;
-    sp->_default_bg = C_MASK;
+    sp->_default_fg = COLOR_DEFAULT;
+    sp->_default_bg = COLOR_DEFAULT;
 #endif
 
     /*
@@ -433,9 +440,9 @@ NCURSES_SP_NAME(_nc_setupscreen) (
 	char sep1, sep2;
 	int count = sscanf(env, "%d%c%d%c", &fg, &sep1, &bg, &sep2);
 	if (count >= 1) {
-	    sp->_default_fg = ((fg >= 0 && fg < MaxColors) ? fg : C_MASK);
+	    sp->_default_fg = ((fg >= 0 && fg < MaxColors) ? fg : COLOR_DEFAULT);
 	    if (count >= 3) {
-		sp->_default_bg = ((bg >= 0 && bg < MaxColors) ? bg : C_MASK);
+		sp->_default_bg = ((bg >= 0 && bg < MaxColors) ? bg : COLOR_DEFAULT);
 	    }
 	    TR(TRACE_CHARPUT | TRACE_MOVE,
 	       ("from environment assumed fg=%d, bg=%d",
@@ -628,8 +635,18 @@ NCURSES_SP_NAME(_nc_setupscreen) (
     NewScreen(sp)->_clear = TRUE;
     CurScreen(sp)->_clear = FALSE;
 
-    NCURSES_SP_NAME(def_shell_mode) (NCURSES_SP_ARG);
-    NCURSES_SP_NAME(def_prog_mode) (NCURSES_SP_ARG);
+    /*
+     * Get the current tty-modes. setupterm() may already have done this,
+     * unless we use the term-driver.
+     */
+#ifndef USE_TERM_DRIVER
+    if (cur_term != 0 &&
+	!memcmp(&cur_term->Ottyb, &null_TTY, sizeof(TTY)))
+#endif
+    {
+	NCURSES_SP_NAME(def_shell_mode) (NCURSES_SP_ARG);
+	NCURSES_SP_NAME(def_prog_mode) (NCURSES_SP_ARG);
+    }
 
     if (safe_ripoff_sp && safe_ripoff_sp != safe_ripoff_stack) {
 	ripoff_t *rop;
@@ -738,12 +755,15 @@ NCURSES_SP_NAME(_nc_ripoffline) (NCURSES_SP_DCLx
 	if (line == 0) {
 	    code = OK;
 	} else {
-	    if (safe_ripoff_sp == 0)
+	    if (safe_ripoff_sp == 0) {
 		safe_ripoff_sp = safe_ripoff_stack;
+	    }
 	    if (safe_ripoff_sp < safe_ripoff_stack + N_RIPS) {
 		safe_ripoff_sp->line = line;
 		safe_ripoff_sp->hook = init;
 		(safe_ripoff_sp)++;
+		T(("ripped-off %d:%d chunks",
+		   (int) (safe_ripoff_sp - safe_ripoff_stack), N_RIPS));
 		code = OK;
 	    }
 	}
@@ -756,7 +776,12 @@ NCURSES_SP_NAME(_nc_ripoffline) (NCURSES_SP_DCLx
 NCURSES_EXPORT(int)
 _nc_ripoffline(int line, int (*init) (WINDOW *, int))
 {
-    return NCURSES_SP_NAME(_nc_ripoffline) (CURRENT_SCREEN_PRE, line, init);
+    int rc;
+    _nc_lock_global(prescreen);
+    START_TRACE();
+    rc = NCURSES_SP_NAME(_nc_ripoffline) (CURRENT_SCREEN_PRE, line, init);
+    _nc_unlock_global(prescreen);
+    return rc;
 }
 #endif
 
@@ -775,6 +800,11 @@ NCURSES_SP_NAME(ripoffline) (NCURSES_SP_DCLx
 NCURSES_EXPORT(int)
 ripoffline(int line, int (*init) (WINDOW *, int))
 {
-    return NCURSES_SP_NAME(ripoffline) (CURRENT_SCREEN_PRE, line, init);
+    int rc;
+    _nc_lock_global(prescreen);
+    START_TRACE();
+    rc = NCURSES_SP_NAME(ripoffline) (CURRENT_SCREEN_PRE, line, init);
+    _nc_unlock_global(prescreen);
+    return rc;
 }
 #endif
