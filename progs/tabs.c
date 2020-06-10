@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2008-2015,2016 Free Software Foundation, Inc.              *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 2008-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -38,7 +39,7 @@
 #include <progs.priv.h>
 #include <tty_settings.h>
 
-MODULE_ID("$Id: tabs.c,v 1.38 2016/12/31 15:10:52 tom Exp $")
+MODULE_ID("$Id: tabs.c,v 1.45 2020/05/27 23:47:22 tom Exp $")
 
 static void usage(void) GCC_NORETURN;
 
@@ -74,7 +75,7 @@ do_tabs(int *tab_list)
 	    }
 	}
 	if (stop <= max_cols) {
-	    tputs(tparm(set_tab, stop), 1, putch);
+	    tputs(TIPARM_1(set_tab, stop), 1, putch);
 	    last = stop;
 	} else {
 	    break;
@@ -387,7 +388,7 @@ main(int argc, char *argv[])
 
     _nc_progname = _nc_rootname(argv[0]);
 
-    fd = save_tty_settings(&tty_settings);
+    fd = save_tty_settings(&tty_settings, FALSE);
 
     if ((term_name = getenv("TERM")) == 0)
 	term_name = "ansi+tabs";
@@ -458,7 +459,7 @@ main(int argc, char *argv[])
 		    if (*++option != '\0') {
 			term_name = option;
 		    } else {
-			term_name = argv[n++];
+			term_name = argv[n];
 			option--;
 		    }
 		    option += ((int) strlen(option)) - 1;

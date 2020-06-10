@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2008-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 2008-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +27,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: clip_printw.c,v 1.14 2017/04/15 17:28:10 tom Exp $
+ * $Id: clip_printw.c,v 1.19 2020/05/10 00:40:23 tom Exp $
  *
  * demonstrate how to use printw without wrapping.
  */
@@ -56,7 +57,7 @@ typedef struct {
 } STATUS;
 
 static int
-clip_wprintw(WINDOW *win, NCURSES_CONST char *fmt,...)
+clip_wprintw(WINDOW *win, NCURSES_CONST char *fmt, ...)
 {
     int y0, x0, y1, x1, width;
     WINDOW *sub;
@@ -103,10 +104,11 @@ color_params(unsigned state, int *pair)
     };
     /* *INDENT-ON* */
 
-    static bool first = TRUE;
     const char *result = 0;
 
     if (has_colors()) {
+	static bool first = TRUE;
+
 	if (first) {
 	    unsigned n;
 
@@ -133,11 +135,11 @@ video_params(unsigned state, attr_t *attr)
 	attr_t attr;
 	const char *msg;
     } table[] = {
-	{ A_NORMAL,	"normal" },
-	{ A_BOLD,	"bold" },
-	{ A_REVERSE,	"reverse" },
-	{ A_UNDERLINE,	"underline" },
-	{ A_BLINK, 	"blink" },
+	{ WA_NORMAL,	"normal" },
+	{ WA_BOLD,	"bold" },
+	{ WA_REVERSE,	"reverse" },
+	{ WA_UNDERLINE,	"underline" },
+	{ WA_BLINK, 	"blink" },
     };
     /* *INDENT-ON* */
 
@@ -329,7 +331,10 @@ test_clipping(WINDOW *win)
 		need = (unsigned) st.count + 1;
 		_nc_SPRINTF(fmt, _nc_SLIMIT(sizeof(fmt)) "%%c%%%ds%%c", st.count);
 	    } else {
-		need = (unsigned) getmaxx(win) - 1;
+		int want = getmaxx(win);
+		if (want < 10)
+		    want = 10;
+		need = (unsigned) want - 1;
 		_nc_STRCPY(fmt, "%c%s%c", sizeof(fmt));
 	    }
 	    if ((buffer = typeMalloc(char, need + 1)) != 0) {

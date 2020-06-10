@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018-2019,2020 Thomas E. Dickey                                *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -32,7 +33,7 @@
 
 #include "form.priv.h"
 
-MODULE_ID("$Id: frm_driver.c,v 1.121 2017/04/08 22:02:15 tom Exp $")
+MODULE_ID("$Id: frm_driver.c,v 1.129 2020/02/02 23:34:34 tom Exp $")
 
 /*----------------------------------------------------------------------------
   This is the core module of the form library. It contains the majority
@@ -99,9 +100,9 @@ Perhaps at some time we will make this configurable at runtime.
 #define GROW_IF_NAVIGATE (1)
 
 #if USE_WIDEC_SUPPORT
-#define myADDNSTR(w, s, n) wadd_wchnstr(w, s, n)
-#define myINSNSTR(w, s, n) wins_wchnstr(w, s, n)
-#define myINNSTR(w, s, n)  fix_wchnstr(w, s, n)
+#define myADDNSTR(w, s, n) wide_waddnstr(w, s, n)
+#define myINSNSTR(w, s, n) wide_winsnstr(w, s, n)
+#define myINNSTR(w, s, n)  wide_winnstr(w, s, n)
 #define myWCWIDTH(w, y, x) cell_width(w, y, x)
 #else
 #define myADDNSTR(w, s, n) waddnstr(w, s, n)
@@ -239,9 +240,29 @@ check_pos(FORM *form, int lineno)
   Wide-character special functions
   --------------------------------------------------------------------------*/
 #if USE_WIDEC_SUPPORT
-/* like winsnstr */
+/* add like waddnstr, but using cchar_t* rather than char*
+ */
 static int
-wins_wchnstr(WINDOW *w, cchar_t *s, int n)
+wide_waddnstr(WINDOW *w, const cchar_t *s, int n)
+{
+  int rc = OK;
+
+  while (n-- > 0)
+    {
+      if ((rc = wadd_wch(w, s)) != OK)
+	break;
+      ++s;
+    }
+  return rc;
+}
+
+/* insert like winsnstr, but using cchar_t* rather than char*
+ *
+ * X/Open Curses has no close equivalent; inserts are done only with wchar_t
+ * strings.
+ */
+static int
+wide_winsnstr(WINDOW *w, const cchar_t *s, int n)
 {
   int code = ERR;
   int y, x;
@@ -257,11 +278,13 @@ wins_wchnstr(WINDOW *w, cchar_t *s, int n)
   return code;
 }
 
-/* win_wchnstr is inconsistent with winnstr, since it returns OK rather than
- * the number of items transferred.
+/* retrieve like winnstr, but using cchar_t*, rather than char*.
+ *
+ * X/Open Curses' closest equivalent, win_wchnstr(), is inconsistent with
+ * winnstr(), since it returns OK rather than the number of items transferred.
  */
 static int
-fix_wchnstr(WINDOW *w, cchar_t *s, int n)
+wide_winnstr(WINDOW *w, cchar_t *s, int n)
 {
   int x;
 
@@ -844,11 +867,13 @@ _nc_Position_Form_Cursor(FORM *form)
 |                    E_BAD_ARGUMENT    - invalid form pointer
 |                    E_SYSTEM_ERROR    - general error
 +--------------------------------------------------------------------------*/
+static bool move_after_insert = TRUE;
 NCURSES_EXPORT(int)
 _nc_Refresh_Current_Field(FORM *form)
 {
   WINDOW *formwin;
   FIELD *field;
+  bool is_public;
 
   T((T_CALLED("_nc_Refresh_Current_Field(%p)"), (void *)form));
 
@@ -861,102 +886,105 @@ _nc_Refresh_Current_Field(FORM *form)
   field = form->current;
   formwin = Get_Form_Window(form);
 
-  if (Field_Has_Option(field, O_PUBLIC))
+  is_public = Field_Has_Option(field, O_PUBLIC);
+
+  if (Is_Scroll_Field(field))
     {
-      if (Is_Scroll_Field(field))
+      /* Again, in this case the fieldwin isn't derived from formwin,
+         so we have to perform a copy operation. */
+      if (Single_Line_Field(field))
 	{
-	  /* Again, in this case the fieldwin isn't derived from formwin,
-	     so we have to perform a copy operation. */
-	  if (Single_Line_Field(field))
-	    {
-	      /* horizontal scrolling */
-	      if (form->curcol < form->begincol)
-		form->begincol = form->curcol;
-	      else
-		{
-		  if (form->curcol >= (form->begincol + field->cols))
-		    form->begincol = form->curcol - field->cols + 1;
-		}
-	      copywin(form->w,
-		      formwin,
-		      0,
-		      form->begincol,
-		      field->frow,
-		      field->fcol,
-		      field->frow,
-		      field->cols + field->fcol - 1,
-		      0);
-	    }
+	  /* horizontal scrolling */
+	  if (form->curcol < form->begincol)
+	    form->begincol = form->curcol;
 	  else
 	    {
-	      /* A multi-line, i.e. vertical scrolling field */
-	      int row_after_bottom, first_modified_row, first_unmodified_row;
-
-	      if (field->drows > field->rows)
-		{
-		  row_after_bottom = form->toprow + field->rows;
-		  if (form->currow < form->toprow)
-		    {
-		      form->toprow = form->currow;
-		      SetStatus(field, _NEWTOP);
-		    }
-		  if (form->currow >= row_after_bottom)
-		    {
-		      form->toprow = form->currow - field->rows + 1;
-		      SetStatus(field, _NEWTOP);
-		    }
-		  if (field->status & _NEWTOP)
-		    {
-		      /* means we have to copy whole range */
-		      first_modified_row = form->toprow;
-		      first_unmodified_row = first_modified_row + field->rows;
-		      ClrStatus(field, _NEWTOP);
-		    }
-		  else
-		    {
-		      /* we try to optimize : finding the range of touched
-		         lines */
-		      first_modified_row = form->toprow;
-		      while (first_modified_row < row_after_bottom)
-			{
-			  if (is_linetouched(form->w, first_modified_row))
-			    break;
-			  first_modified_row++;
-			}
-		      first_unmodified_row = first_modified_row;
-		      while (first_unmodified_row < row_after_bottom)
-			{
-			  if (!is_linetouched(form->w, first_unmodified_row))
-			    break;
-			  first_unmodified_row++;
-			}
-		    }
-		}
-	      else
-		{
-		  first_modified_row = form->toprow;
-		  first_unmodified_row = first_modified_row + field->rows;
-		}
-	      if (first_unmodified_row != first_modified_row)
-		copywin(form->w,
-			formwin,
-			first_modified_row,
-			0,
-			field->frow + first_modified_row - form->toprow,
-			field->fcol,
-			field->frow + first_unmodified_row - form->toprow - 1,
-			field->cols + field->fcol - 1,
-			0);
+	      if (form->curcol >= (form->begincol + field->cols))
+		form->begincol = form->curcol - field->cols
+		  + (move_after_insert ? 1 : 0);
 	    }
-	  wsyncup(formwin);
+	  if (is_public)
+	    copywin(form->w,
+		    formwin,
+		    0,
+		    form->begincol,
+		    field->frow,
+		    field->fcol,
+		    field->frow,
+		    field->cols + field->fcol - 1,
+		    0);
 	}
       else
 	{
-	  /* if the field-window is simply a derived window, i.e. contains no
-	   * invisible parts, the whole thing is trivial
-	   */
-	  wsyncup(form->w);
+	  /* A multi-line, i.e. vertical scrolling field */
+	  int row_after_bottom, first_modified_row, first_unmodified_row;
+
+	  if (field->drows > field->rows)
+	    {
+	      row_after_bottom = form->toprow + field->rows;
+	      if (form->currow < form->toprow)
+		{
+		  form->toprow = form->currow;
+		  SetStatus(field, _NEWTOP);
+		}
+	      if (form->currow >= row_after_bottom)
+		{
+		  form->toprow = form->currow - field->rows + 1;
+		  SetStatus(field, _NEWTOP);
+		}
+	      if (field->status & _NEWTOP)
+		{
+		  /* means we have to copy whole range */
+		  first_modified_row = form->toprow;
+		  first_unmodified_row = first_modified_row + field->rows;
+		  ClrStatus(field, _NEWTOP);
+		}
+	      else
+		{
+		  /* we try to optimize : finding the range of touched
+		     lines */
+		  first_modified_row = form->toprow;
+		  while (first_modified_row < row_after_bottom)
+		    {
+		      if (is_linetouched(form->w, first_modified_row))
+			break;
+		      first_modified_row++;
+		    }
+		  first_unmodified_row = first_modified_row;
+		  while (first_unmodified_row < row_after_bottom)
+		    {
+		      if (!is_linetouched(form->w, first_unmodified_row))
+			break;
+		      first_unmodified_row++;
+		    }
+		}
+	    }
+	  else
+	    {
+	      first_modified_row = form->toprow;
+	      first_unmodified_row = first_modified_row + field->rows;
+	    }
+	  if (first_unmodified_row != first_modified_row && is_public)
+	    copywin(form->w,
+		    formwin,
+		    first_modified_row,
+		    0,
+		    field->frow + first_modified_row - form->toprow,
+		    field->fcol,
+		    field->frow + first_unmodified_row - form->toprow - 1,
+		    field->cols + field->fcol - 1,
+		    0);
 	}
+      if (is_public)
+	wsyncup(formwin);
+    }
+  else
+    {
+      /* if the field-window is simply a derived window, i.e. contains no
+       * invisible parts, the whole thing is trivial
+       */
+      if (is_public)
+	wsyncup(form->w);
     }
   untouchwin(form->w);
   returnCode(_nc_Position_Form_Cursor(form));
@@ -1023,7 +1051,10 @@ static void
 Undo_Justification(FIELD *field, WINDOW *win)
 {
   FIELD_CELL *bp;
+  int y, x;
   int len;
+
+  getyx(win, y, x);
 
   bp = (Field_Has_Option(field, O_NO_LEFT_STRIP)
 	? field->buf
@@ -1036,6 +1067,7 @@ Undo_Justification(FIELD *field, WINDOW *win)
       wmove(win, 0, 0);
       myADDNSTR(win, bp, len);
     }
+  wmove(win, y, x);
 }
 
 /*---------------------------------------------------------------------------
@@ -4158,6 +4190,12 @@ Data_Entry(FORM *form, int c)
 	  bool End_Of_Field = (((field->drows - 1) == form->currow) &&
 			       ((field->dcols - 1) == form->curcol));
 
+	  if (Field_Has_Option(field, O_EDGE_INSERT_STAY))
+	    move_after_insert = !!(form->curcol
+				   - form->begincol
+				   - field->cols
+				   + 1);
+
 	  SetStatus(form, _WINDOW_MODIFIED);
 	  if (End_Of_Field && !Growable(field) && (Field_Has_Option(field, O_AUTOSKIP)))
 	    result = Inter_Field_Navigation(FN_Next_Field, form);
@@ -4322,12 +4360,14 @@ form_driver(FORM *form, int c)
   const Binding_Info *BI = (Binding_Info *) 0;
   int res = E_UNKNOWN_COMMAND;
 
+  move_after_insert = TRUE;
+
   T((T_CALLED("form_driver(%p,%d)"), (void *)form, c));
 
   if (!form)
     RETURN(E_BAD_ARGUMENT);
 
-  if (!(form->field))
+  if (!(form->field) || !(form->current))
     RETURN(E_NOT_CONNECTED);
 
   assert(form->page);

@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018-2019,2020 Thomas E. Dickey                                *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -50,7 +51,7 @@
 #include <transform.h>
 #include <tty_settings.h>
 
-MODULE_ID("$Id: tput.c,v 1.71 2017/08/19 13:44:27 tom Exp $")
+MODULE_ID("$Id: tput.c,v 1.83 2020/05/27 23:47:51 tom Exp $")
 
 #define PUTS(s)		fputs(s, stdout)
 
@@ -62,7 +63,7 @@ static bool is_reset = FALSE;
 static bool is_clear = FALSE;
 
 static void
-quit(int status, const char *fmt,...)
+quit(int status, const char *fmt, ...)
 {
     va_list argp;
 
@@ -96,7 +97,7 @@ usage(void)
 #undef KEEP
     (void) fprintf(stderr, "Usage: %s [options] [command]\n", prg_name);
     fputs(msg, stderr);
-    ExitProgram(EXIT_FAILURE);
+    ExitProgram(ErrUsage);
 }
 
 static char *
@@ -135,6 +136,9 @@ exit_code(int token, int value)
     return result;
 }
 
+/*
+ * Returns nonzero on error.
+ */
 static int
 tput_cmd(int fd, TTY * saved_settings, bool opt_x, int argc, char *argv[])
 {
@@ -183,7 +187,7 @@ tput_cmd(int fd, TTY * saved_settings, bool opt_x, int argc, char *argv[])
   retry:
 #endif
     if (strcmp(name, "clear") == 0) {
-	return clear_cmd(opt_x);
+	return (clear_cmd(opt_x) == ERR) ? ErrUsage : 0;
     } else if ((status = tigetflag(name)) != -1) {
 	return exit_code(BOOLEAN, status);
     } else if ((status = tigetnum(name)) != CANCELLED_NUMERIC) {
@@ -213,8 +217,8 @@ tput_cmd(int fd, TTY * saved_settings, bool opt_x, int argc, char *argv[])
 	    }
 	}
 #endif
-	quit(4, "unknown terminfo capability '%s'", name);
-    } else if (s != ABSENT_STRING) {
+	quit(ErrCapName, "unknown terminfo capability '%s'", name);
+    } else if (VALID_STRING(s)) {
 	if (argc > 1) {
 	    int k;
 	    int ignored;
@@ -227,7 +231,7 @@ tput_cmd(int fd, TTY * saved_settings, bool opt_x, int argc, char *argv[])
 	     * representations
 	     */
 
-	    for (k = 1; k < argc; k++) {
+	    for (k = 1; (k < argc) && (k < NUM_PARM); k++) {
 		char *tmp = 0;
 		strings[k] = argv[k];
 		numbers[k] = strtol(argv[k], &tmp, 0);
@@ -247,6 +251,19 @@ tput_cmd(int fd, TTY * saved_settings, bool opt_x, int argc, char *argv[])
 		s = TPARM_3(s, numbers[1], strings[2], strings[3]);
 		break;
 	    case Numbers:
+#define myParam(n) numbers[n]
+		s = TIPARM_9(s,
+			     myParam(1),
+			     myParam(2),
+			     myParam(3),
+			     myParam(4),
+			     myParam(5),
+			     myParam(6),
+			     myParam(7),
+			     myParam(8),
+			     myParam(9));
+#undef myParam
+		break;
 	    default:
 		(void) _nc_tparm_analyze(s, p_is_s, &ignored);
 #define myParam(n) (p_is_s[n - 1] != 0 ? ((TPARM_ARG) strings[n]) : numbers[n])
@@ -260,6 +277,7 @@ tput_cmd(int fd, TTY * saved_settings, bool opt_x, int argc, char *argv[])
 			    myParam(7),
 			    myParam(8),
 			    myParam(9));
+#undef myParam
 		break;
 	    }
 	}
@@ -283,18 +301,21 @@ main(int argc, char **argv)
     int fd;
     TTY tty_settings;
     bool opt_x = FALSE;		/* clear scrollback if possible */
+    bool is_alias;
+    bool need_tty;
 
     prg_name = check_aliases(_nc_rootname(argv[0]), TRUE);
 
     term = getenv("TERM");
 
-    while ((c = getopt(argc, argv, "ST:V")) != -1) {
+    while ((c = getopt(argc, argv, "ST:Vx")) != -1) {
 	switch (c) {
 	case 'S':
 	    cmdline = FALSE;
 	    break;
 	case 'T':
 	    use_env(FALSE);
+	    use_tioctl(TRUE);
 	    term = optarg;
 	    break;
 	case 'V':
@@ -309,10 +330,16 @@ main(int argc, char **argv)
 	}
     }
 
+    is_alias = (is_clear || is_reset || is_init);
+    need_tty = ((is_reset || is_init) ||
+		(optind < argc &&
+		 (!strcmp(argv[optind], "reset") ||
+		  !strcmp(argv[optind], "init"))));
+
     /*
      * Modify the argument list to omit the options we processed.
      */
-    if (is_clear || is_reset || is_init) {
+    if (is_alias) {
 	if (optind-- < argc) {
 	    argc -= optind;
 	    argv += optind;
@@ -324,15 +351,15 @@ main(int argc, char **argv)
     }
 
     if (term == 0 || *term == '\0')
-	quit(2, "No value for $TERM and no -T specified");
+	quit(ErrUsage, "No value for $TERM and no -T specified");
 
-    fd = save_tty_settings(&tty_settings);
+    fd = save_tty_settings(&tty_settings, need_tty);
 
     if (setupterm(term, fd, &errret) != OK && errret <= 0)
-	quit(3, "unknown terminal \"%s\"", term);
+	quit(ErrTermType, "unknown terminal \"%s\"", term);
 
     if (cmdline) {
-	if ((argc <= 0) && !(is_clear || is_reset || is_init))
+	if ((argc <= 0) && !is_alias)
 	    usage();
 	ExitProgram(tput_cmd(fd, &tty_settings, opt_x, argc, argv));
     }
@@ -357,7 +384,7 @@ main(int argc, char **argv)
 	if (argnum != 0
 	    && tput_cmd(fd, &tty_settings, opt_x, argnum, argvec) != 0) {
 	    if (result == 0)
-		result = 4;	/* will return value >4 */
+		result = ErrSystem(0);	/* will return value >4 */
 	    ++result;
 	}
     }

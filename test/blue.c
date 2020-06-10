@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -36,7 +37,7 @@
  *****************************************************************************/
 
 /*
- * $Id: blue.c,v 1.49 2017/04/15 13:36:36 tom Exp $
+ * $Id: blue.c,v 1.53 2020/02/02 23:34:34 tom Exp $
  */
 
 #include <test.priv.h>
@@ -153,14 +154,14 @@ init_vars(void)
 static void
 shuffle(int size)
 {
-    int i, j, numswaps, swapnum, temp;
+    int numswaps, swapnum;
 
     numswaps = size * 10;	/* an arbitrary figure */
 
     for (swapnum = 0; swapnum < numswaps; swapnum++) {
-	i = rand() % size;
-	j = rand() % size;
-	temp = deck[i];
+	int i = rand() % size;
+	int j = rand() % size;
+	int temp = deck[i];
 	deck[i] = deck[j];
 	deck[j] = temp;
     }
@@ -169,11 +170,11 @@ shuffle(int size)
 static void
 deal_cards(void)
 {
-    int ptr, card = 0, value, csuit, crank, suit, aces[4];
+    int card = 0, value, csuit, crank, suit, aces[4];
 
     memset(aces, 0, sizeof(aces));
     for (suit = HEARTS; suit <= CLUBS; suit++) {
-	ptr = freeptr[suit];
+	int ptr = freeptr[suit];
 	grid[ptr++] = NOCARD;	/* 1st card space is blank */
 	while ((ptr % GRID_WIDTH) != 0) {
 	    value = deck[card++];
@@ -202,7 +203,7 @@ printcard(int value)
     } else {
 	int which = (value / SUIT_LENGTH);
 	int isuit = (value % SUIT_LENGTH);
-	attr_t color = (attr_t) COLOR_PAIR(((which % 2) == 0)
+	chtype color = (chtype) COLOR_PAIR(((which % 2) == 0)
 					   ? RED_ON_WHITE
 					   : BLACK_ON_WHITE);
 
@@ -388,10 +389,10 @@ play_game(void)
 static int
 collect_discards(void)
 {
-    int row, col, cardno = 0, finish, gridno;
+    int row, col, cardno = 0, gridno;
 
     for (row = HEARTS; row <= CLUBS; row++) {
-	finish = 0;
+	int finish = 0;
 	for (col = 1; col < GRID_WIDTH; col++) {
 	    gridno = row * GRID_WIDTH + col;
 
@@ -467,13 +468,11 @@ use_pc_display(void)
 int
 main(int argc, char *argv[])
 {
-    CATCHALL(die);
-
     setlocale(LC_ALL, "");
 
     use_pc_display();
 
-    initscr();
+    InitAndCatch(initscr(), die);
 
     start_color();
     init_pair(RED_ON_WHITE, COLOR_RED, COLOR_WHITE);

@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2008-2014,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 2008-2014,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,12 +27,15 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: insdelln.c,v 1.10 2017/04/15 17:40:11 tom Exp $
+ * $Id: insdelln.c,v 1.14 2020/02/02 23:34:34 tom Exp $
  *
  * test-driver for deleteln, wdeleteln, insdelln, winsdelln, insertln, winsertln
  */
 
 #include <test.priv.h>
+
+#if HAVE_WINSDELLN
+
 #include <popup_msg.h>
 
 #define SHOW(n) ((n) == ERR ? "ERR" : "OK")
@@ -67,10 +71,10 @@ color_params(unsigned state, int *pair)
     };
     /* *INDENT-ON* */
 
-    static bool first = TRUE;
     const char *result = 0;
 
     if (has_colors()) {
+	static bool first = TRUE;
 	if (first) {
 	    unsigned n;
 
@@ -379,3 +383,12 @@ main(int argc GCC_UNUSED, char *argv[]GCC_UNUSED)
 
     ExitProgram(EXIT_SUCCESS);
 }
+
+#else
+int
+main(void)
+{
+    printf("This program requires the curses winsdelln function\n");
+    ExitProgram(EXIT_FAILURE);
+}
+#endif

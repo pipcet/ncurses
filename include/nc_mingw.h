@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2008-2010,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018-2019,2020 Thomas E. Dickey                                *
+ * Copyright 2008-2010,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -27,19 +28,19 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Author: Thomas Dickey, 2008-on                                           * 
+ * Author: Thomas Dickey, 2008-on                                           *
  ****************************************************************************/
 
-/* $Id: nc_mingw.h,v 1.4 2017/07/22 17:06:38 tom Exp $ */
+/* $Id: nc_mingw.h,v 1.8 2020/02/29 15:46:00 anonymous.maarten Exp $ */
 
 #ifndef NC_MINGW_H
 #define NC_MINGW_H 1
 
-#ifdef __MINGW32__
+#ifdef _WIN32
 #ifdef WINVER
 #  if WINVER < 0x0501
 #    error WINVER must at least be 0x0501
-#  endif  
+#  endif
 #else
 #  define WINVER 0x0501
 #endif
@@ -51,7 +52,9 @@
 #undef gettimeofday
 #define gettimeofday(tv,tz) _nc_gettimeofday(tv,tz)
 
-#include <sys/time.h>	/* for struct timeval */
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>		/* for struct timeval */
+#endif
 
 extern int _nc_gettimeofday(struct timeval *, void *);
 
@@ -63,9 +66,9 @@ extern int _nc_gettimeofday(struct timeval *, void *);
 #define getlogin() "username"
 
 #undef wcwidth
-#define wcwidth(ucs) _nc_wcwidth(ucs)
+#define wcwidth(ucs) _nc_wcwidth((wchar_t)(ucs))
 extern int _nc_wcwidth(wchar_t);
 
-#endif /* __MINGW32__ */
+#endif /* _WIN32 */
 
 #endif /* NC_MINGW_H */

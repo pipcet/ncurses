@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -97,7 +98,7 @@
 char *ttyname(int fd);
 #endif
 
-MODULE_ID("$Id: tset.c,v 1.118 2017/08/19 13:16:03 tom Exp $")
+MODULE_ID("$Id: tset.c,v 1.121 2020/02/02 23:34:34 tom Exp $")
 
 #ifndef environ
 extern char **environ;
@@ -760,7 +761,7 @@ main(int argc, char **argv)
     int terasechar = -1;	/* new erase character */
     int intrchar = -1;		/* new interrupt character */
     int tkillchar = -1;		/* new kill character */
-    int my_fd = -1;
+    int my_fd;
     bool opt_c = FALSE;		/* set control-chars */
     bool opt_w = FALSE;		/* set window-size */
     TTY mode, oldmode;
@@ -834,7 +835,7 @@ main(int argc, char **argv)
     if (!opt_c && !opt_w)
 	opt_c = opt_w = TRUE;
 
-    my_fd = save_tty_settings(&mode);
+    my_fd = save_tty_settings(&mode, TRUE);
     oldmode = mode;
 #ifdef TERMIOS
     ospeed = (NCURSES_OSPEED) cfgetospeed(&mode);

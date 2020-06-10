@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2017,2018 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -41,7 +42,7 @@
 #define CUR SP_TERMTYPE
 #endif
 
-MODULE_ID("$Id: lib_screen.c,v 1.86 2017/04/23 15:07:27 tom Exp $")
+MODULE_ID("$Id: lib_screen.c,v 1.100 2020/05/25 22:48:41 tom Exp $")
 
 #define MAX_SIZE 0x3fff		/* 16k is big enough for a window or pad */
 
@@ -57,7 +58,7 @@ MODULE_ID("$Id: lib_screen.c,v 1.86 2017/04/23 15:07:27 tom Exp $")
 #define ARG_SLIMIT(name)	/* nothing */
 #endif
 
-#define CUR_SLIMIT _nc_SLIMIT(limit - (target - base))
+#define CUR_SLIMIT _nc_SLIMIT(limit - (size_t) (target - base))
 #define TOP_SLIMIT _nc_SLIMIT(sizeof(buffer))
 
 /*
@@ -66,7 +67,7 @@ MODULE_ID("$Id: lib_screen.c,v 1.86 2017/04/23 15:07:27 tom Exp $")
  * format.  It happens to be unused in the file 5.22 database (2015/03/07).
  */
 static const char my_magic[] =
-{'\210', '\210', '\210', '\210'};
+{'\210', '\210', '\210', '\210', 0};
 
 #if NCURSES_EXT_PUTWIN
 typedef enum {
@@ -365,7 +366,7 @@ decode_cchar(char *source, cchar_t *fillin, cchar_t *target)
 	    chars[append] = (wchar_t) value;
 	}
     }
-    setcchar(target, chars, attr, (short) color, NULL);
+    setcchar(target, chars, attr, (short) color, &color);
     return source;
 }
 #endif
@@ -440,14 +441,14 @@ read_win(WINDOW *win, FILE *fp)
 }
 
 static int
-read_row(char *source, NCURSES_CH_T * prior, NCURSES_CH_T * target, int length)
+read_row(char *source, NCURSES_CH_T *prior, NCURSES_CH_T *target, int length)
 {
     while (*source != '\0' && length > 0) {
 #if NCURSES_WIDECHAR
 	int len;
 
 	source = decode_cchar(source, prior, target);
-	len = wcwidth(target->chars[0]);
+	len = _nc_wacs_width(target->chars[0]);
 	if (len > 1) {
 	    int n;
 
@@ -514,13 +515,13 @@ NCURSES_SP_NAME(getwin) (NCURSES_SP_DCLx FILE *filep)
      * Read the first 4 bytes to determine first if this is an old-format
      * screen-dump, or new-format.
      */
-    if (read_block(&tmp, 4, filep) < 0) {
+    if (read_block(&tmp, (size_t) 4, filep) < 0) {
 	returnWin(0);
     }
     /*
      * If this is a new-format file, and we do not support it, give up.
      */
-    if (!memcmp(&tmp, my_magic, 4)) {
+    if (!memcmp(&tmp, my_magic, (size_t) 4)) {
 #if NCURSES_EXT_PUTWIN
 	if (read_win(&tmp, filep) < 0)
 #endif
@@ -655,7 +656,9 @@ getwin(FILE *filep)
 static void
 encode_attr(char *target, ARG_SLIMIT(limit)
 	    attr_t source,
-	    attr_t prior)
+	    attr_t prior,
+	    int source_color,
+	    int prior_color)
 {
 #if USE_STRING_HACKS && HAVE_SNPRINTF
     char *base = target;
@@ -664,7 +667,7 @@ encode_attr(char *target, ARG_SLIMIT(limit)
     prior &= ~A_CHARTEXT;
 
     *target = '\0';
-    if (source != prior) {
+    if ((source != prior) || (source_color != prior_color)) {
 	size_t n;
 	bool first = TRUE;
 
@@ -684,10 +687,10 @@ encode_attr(char *target, ARG_SLIMIT(limit)
 		target += strlen(target);
 	    }
 	}
-	if ((source & A_COLOR) != (prior & A_COLOR)) {
+	if (source_color != prior_color) {
 	    if (!first)
 		*target++ = '|';
-	    _nc_SPRINTF(target, CUR_SLIMIT "C%d", PAIR_NUMBER((int) source));
+	    _nc_SPRINTF(target, CUR_SLIMIT "C%d", source_color);
 	    target += strlen(target);
 	}
 
@@ -704,10 +707,16 @@ encode_cell(char *target, ARG_SLIMIT(limit) CARG_CH_T source, CARG_CH_T previous
 #endif
 #if NCURSES_WIDECHAR
     size_t n;
+    int source_pair = GetPair(*source);
+    int previous_pair = GetPair(*previous);
 
     *target = '\0';
-    if (previous->attr != source->attr) {
-	encode_attr(target, CUR_SLIMIT source->attr, previous->attr);
+    if ((previous->attr != source->attr) || (previous_pair != source_pair)) {
+	encode_attr(target, CUR_SLIMIT
+		    source->attr,
+		    previous->attr,
+		    source_pair,
+		    previous_pair);
     }
     target += strlen(target);
 #if NCURSES_EXT_COLORS
@@ -753,7 +762,11 @@ encode_cell(char *target, ARG_SLIMIT(limit) CARG_CH_T source, CARG_CH_T previous
 
     *target = '\0';
     if (AttrOfD(previous) != AttrOfD(source)) {
-	encode_attr(target, CUR_SLIMIT AttrOfD(source), AttrOfD(previous));
+	encode_attr(target, CUR_SLIMIT
+		    AttrOfD(source),
+		    AttrOfD(previous),
+		    GetPair(source),
+		    GetPair(previous));
     }
     target += strlen(target);
     *target++ = MARKER;
@@ -808,15 +821,20 @@ putwin(WINDOW *win, FILE *filep)
 	    const char *name = scr_params[y].name;
 	    const char *data = (char *) win + scr_params[y].offset;
 	    const void *dp = (const void *) data;
+	    attr_t attr;
 
 	    *buffer = '\0';
-	    if (!strncmp(name, "_pad.", 5) && !(win->_flags & _ISPAD)) {
+	    if (!strncmp(name, "_pad.", (size_t) 5) && !(win->_flags & _ISPAD)) {
 		continue;
 	    }
 	    switch (scr_params[y].type) {
 	    case pATTR:
+		attr = (*(const attr_t *) dp) & ~A_CHARTEXT;
 		encode_attr(buffer, TOP_SLIMIT
-			    (*(const attr_t *) dp) & ~A_CHARTEXT, A_NORMAL);
+			    (*(const attr_t *) dp) & ~A_CHARTEXT,
+			    A_NORMAL,
+			    COLOR_PAIR((int) attr),
+			    0);
 		break;
 	    case pBOOL:
 		if (!(*(const bool *) data)) {
@@ -826,8 +844,12 @@ putwin(WINDOW *win, FILE *filep)
 		name = "flag";
 		break;
 	    case pCHAR:
+		attr = (*(const attr_t *) dp);
 		encode_attr(buffer, TOP_SLIMIT
-			    * (const attr_t *) dp, A_NORMAL);
+			    * (const attr_t *) dp,
+			    A_NORMAL,
+			    COLOR_PAIR((int) attr),
+			    0);
 		break;
 	    case pINT:
 		if (!(*(const int *) dp))
@@ -873,7 +895,7 @@ putwin(WINDOW *win, FILE *filep)
 		returnCode(code);
 	    for (x = 0; x <= win->_maxx; x++) {
 #if NCURSES_WIDECHAR
-		int len = wcwidth(data[x].chars[0]);
+		int len = _nc_wacs_width(data[x].chars[0]);
 		encode_cell(buffer, TOP_SLIMIT CHREF(data[x]), CHREF(last_cell));
 		last_cell = data[x];
 		PUTS(buffer);
@@ -927,7 +949,7 @@ NCURSES_SP_NAME(scr_restore) (NCURSES_SP_DCLx const char *file)
     T((T_CALLED("scr_restore(%p,%s)"), (void *) SP_PARM, _nc_visbuf(file)));
 
     if (_nc_access(file, R_OK) >= 0
-	&& (fp = fopen(file, "rb")) != 0) {
+	&& (fp = fopen(file, BIN_R)) != 0) {
 	delwin(NewScreen(SP_PARM));
 	NewScreen(SP_PARM) = getwin(fp);
 #if !USE_REENTRANT
@@ -958,7 +980,7 @@ scr_dump(const char *file)
     T((T_CALLED("scr_dump(%s)"), _nc_visbuf(file)));
 
     if (_nc_access(file, W_OK) < 0
-	|| (fp = fopen(file, "wb")) == 0) {
+	|| (fp = fopen(file, BIN_W)) == 0) {
 	result = ERR;
     } else {
 	(void) putwin(newscr, fp);
@@ -985,7 +1007,7 @@ NCURSES_SP_NAME(scr_init) (NCURSES_SP_DCLx const char *file)
 	FILE *fp = 0;
 
 	if (_nc_access(file, R_OK) >= 0
-	    && (fp = fopen(file, "rb")) != 0) {
+	    && (fp = fopen(file, BIN_R)) != 0) {
 	    delwin(CurScreen(SP_PARM));
 	    CurScreen(SP_PARM) = getwin(fp);
 #if !USE_REENTRANT

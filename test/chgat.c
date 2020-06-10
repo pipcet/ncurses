@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2006-2012,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 2006-2012,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +27,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: chgat.c,v 1.16 2017/04/16 15:15:34 tom Exp $
+ * $Id: chgat.c,v 1.19 2020/02/02 23:34:34 tom Exp $
  *
  * test-driver for chgat/wchgat/mvchgat/mvwchgat
  */
@@ -75,10 +76,11 @@ color_params(size_t state, short *pair)
     };
     /* *INDENT-ON* */
 
-    static bool first = TRUE;
     const char *result = 0;
 
     if (has_colors()) {
+	static bool first = TRUE;
+
 	if (first) {
 	    size_t n;
 
@@ -103,11 +105,11 @@ video_params(size_t state, attr_t *attr)
 	attr_t attr;
 	const char *msg;
     } table[] = {
-	{ A_NORMAL,	"normal" },
-	{ A_BOLD,	"bold" },
-	{ A_REVERSE,	"reverse" },
-	{ A_UNDERLINE,	"underline" },
-	{ A_BLINK, 	"blink" },
+	{ WA_NORMAL,	"normal" },
+	{ WA_BOLD,	"bold" },
+	{ WA_REVERSE,	"reverse" },
+	{ WA_UNDERLINE,	"underline" },
+	{ WA_BLINK, 	"blink" },
     };
     /* *INDENT-ON* */
 

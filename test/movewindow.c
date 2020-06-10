@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2006-2013,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018-2019,2020 Thomas E. Dickey                                *
+ * Copyright 2006-2013,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +27,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: movewindow.c,v 1.43 2017/06/24 20:48:46 tom Exp $
+ * $Id: movewindow.c,v 1.51 2020/02/02 23:34:34 tom Exp $
  *
  * Demonstrate move functions for windows and derived windows from the curses
  * library.
@@ -45,14 +46,18 @@ TODO:
  */
 
 #include <test.priv.h>
-#include <stdarg.h>
+
+#if HAVE_MVDERWIN && HAVE_MVWIN
+
 #include <popup_msg.h>
 
 #ifdef HAVE_XCURSES
 #undef derwin
 #endif
 
-#ifdef NCURSES_VERSION
+#if defined(NCURSES_CONST)
+#define CONST_FMT NCURSES_CONST
+#elif defined(PDCURSES)
 #define CONST_FMT const
 #else
 #define CONST_FMT		/* nothing */
@@ -74,8 +79,8 @@ typedef struct {
     WINDOW *child;		/* the actual value */
 } FRAME;
 
-static void head_line(CONST_FMT char *fmt,...) GCC_PRINTFLIKE(1, 2);
-static void tail_line(CONST_FMT char *fmt,...) GCC_PRINTFLIKE(1, 2);
+static void head_line(CONST_FMT char *fmt, ...) GCC_PRINTFLIKE(1, 2);
+static void tail_line(CONST_FMT char *fmt, ...) GCC_PRINTFLIKE(1, 2);
 
 static unsigned num_windows;
 static FRAME *all_windows;
@@ -103,6 +108,8 @@ message(int lineno, CONST_FMT char *fmt, va_list argp)
 	vsprintf(buffer, fmt, argp);
 	addstr(buffer);
     }
+#elif defined(HAVE_VW_PRINTW)
+    vw_printw(stdscr, fmt, argp);
 #else
     vwprintw(stdscr, fmt, argp);
 #endif
@@ -112,7 +119,7 @@ message(int lineno, CONST_FMT char *fmt, va_list argp)
 }
 
 static void
-head_line(CONST_FMT char *fmt,...)
+head_line(CONST_FMT char *fmt, ...)
 {
     va_list argp;
 
@@ -122,7 +129,7 @@ head_line(CONST_FMT char *fmt,...)
 }
 
 static void
-tail_line(CONST_FMT char *fmt,...)
+tail_line(CONST_FMT char *fmt, ...)
 {
     va_list argp;
 
@@ -660,8 +667,10 @@ show_help(WINDOW *current)
     size_t n;
 
     for (n = 0; n < SIZEOF(help); ++n) {
-	msgs[n] = typeMalloc(char, 21 + strlen(help[n].msg));
-	sprintf(msgs[n], "%-20s%s", keyname(help[n].key), help[n].msg);
+	size_t need = (21 + strlen(help[n].msg));
+	msgs[n] = typeMalloc(char, need);
+	_nc_SPRINTF(msgs[n], _nc_SLIMIT(need)
+		    "%-20s%s", keyname(help[n].key), help[n].msg);
     }
     popup_msg2(current, msgs);
     for (n = 0; n < SIZEOF(help); ++n) {
@@ -767,3 +776,11 @@ main(int argc GCC_UNUSED, char *argv[]GCC_UNUSED)
 #endif
     ExitProgram(EXIT_SUCCESS);
 }
+#else
+int
+main(void)
+{
+    printf("This program requires the curses mvderwin and mvwin functions\n");
+    ExitProgram(EXIT_FAILURE);
+}
+#endif

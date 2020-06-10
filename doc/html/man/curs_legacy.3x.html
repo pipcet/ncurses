@@ -1,6 +1,7 @@
 <!-- 
   ****************************************************************************
-  * Copyright (c) 2007-2010,2015 Free Software Foundation, Inc.              *
+  * Copyright 2019,2020 Thomas E. Dickey                                     *
+  * Copyright 2007-2015,2017 Free Software Foundation, Inc.                  *
   *                                                                          *
   * Permission is hereby granted, free of charge, to any person obtaining a  *
   * copy of this software and associated documentation files (the            *
@@ -26,15 +27,15 @@
   * sale, use or other dealings in this Software without prior written       *
   * authorization.                                                           *
   ****************************************************************************
-  * @Id: curs_legacy.3x,v 1.6 2015/12/05 20:33:14 tom Exp @
+  * @Id: curs_legacy.3x,v 1.10 2020/02/02 23:34:34 tom Exp @
 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <HTML>
 <HEAD>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta name="generator" content="Manpage converted by man2html - see http://invisible-island.net/scripts/readme.html#others_scripts">
+<meta name="generator" content="Manpage converted by man2html - see https://invisible-island.net/scripts/readme.html#others_scripts">
 <TITLE>curs_legacy 3x</TITLE>
-<link rev=made href="mailto:bug-ncurses@gnu.org">
+<link rel="author" href="mailto:bug-ncurses@gnu.org">
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 </HEAD>
 <BODY>
@@ -52,30 +53,46 @@
 </PRE><H2><a name="h2-SYNOPSIS">SYNOPSIS</a></H2><PRE>
        <STRONG>#include</STRONG> <STRONG>&lt;curses.h&gt;</STRONG>
 
-       <STRONG>int</STRONG> <STRONG>getattrs(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getbegx(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getbegy(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getcurx(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getcury(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getmaxx(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getmaxy(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getparx(WINDOW</STRONG> <STRONG>*win);</STRONG>
-       <STRONG>int</STRONG> <STRONG>getpary(WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getattrs(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getbegx(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getbegy(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getcurx(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getcury(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getmaxx(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getmaxy(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getparx(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
+       <STRONG>int</STRONG> <STRONG>getpary(const</STRONG> <STRONG>WINDOW</STRONG> <STRONG>*win);</STRONG>
 
 
 </PRE><H2><a name="h2-DESCRIPTION">DESCRIPTION</a></H2><PRE>
-       The <STRONG>getbegy</STRONG> and <STRONG>getbegx</STRONG> functions return the same data as <STRONG>getbegyx</STRONG>.
+       These  legacy functions are simpler to use than the X/Open Curses func-
+       tions:
 
-       The <STRONG>getcury</STRONG> and <STRONG>getcurx</STRONG> functions return the same data as <STRONG>getyx</STRONG>.
+       <STRONG>o</STRONG>   The <STRONG>getattrs</STRONG> function returns the same attribute data as <STRONG>wattr_get</STRONG>.
 
-       The <STRONG>getmaxy</STRONG> and <STRONG>getmaxx</STRONG> functions return the same data as <STRONG>getmaxyx</STRONG>.
+           However, <STRONG>getattrs</STRONG> returns an integer  (actually  a  <STRONG>chtype</STRONG>),  while
+           <STRONG>wattr_get</STRONG>  returns  the current color pair in a separate parameter.
+           In the wide-character library configuration, color  pairs  may  not
+           fit into a <STRONG>chtype</STRONG>, so <STRONG>wattr_get</STRONG> is the only way to obtain the color
+           information.
 
-       The <STRONG>getpary</STRONG> and <STRONG>getparx</STRONG> functions return the same data as <STRONG>getparyx</STRONG>.
+           Because <STRONG>getattrs</STRONG> returns the attributes in a single  parameter,  it
+           would  not  be possible for an application to distinguish that from
+           <STRONG>ERR</STRONG> (a <EM>-1</EM>).  If the window  parameter  is  null,  <STRONG>getattrs</STRONG>  returns
+           <STRONG>A_NORMAL</STRONG> (zero).
+
+       <STRONG>o</STRONG>   The <STRONG>getbegy</STRONG> and <STRONG>getbegx</STRONG> functions return the same data as <STRONG>getbegyx</STRONG>.
+
+       <STRONG>o</STRONG>   The <STRONG>getcury</STRONG> and <STRONG>getcurx</STRONG> functions return the same data as <STRONG>getyx</STRONG>.
+
+       <STRONG>o</STRONG>   The <STRONG>getmaxy</STRONG> and <STRONG>getmaxx</STRONG> functions return the same data as <STRONG>getmaxyx</STRONG>.
+
+       <STRONG>o</STRONG>   The <STRONG>getpary</STRONG> and <STRONG>getparx</STRONG> functions return the same data as <STRONG>getparyx</STRONG>.
 
 
 </PRE><H2><a name="h2-RETURN-VALUE">RETURN VALUE</a></H2><PRE>
-       These  functions  return  an integer, or ERR if the window parameter is
-       null.
+       Except  as noted, these functions return an integer, or <STRONG>ERR</STRONG> if the win-
+       dow parameter is null.
 
 
 </PRE><H2><a name="h2-NOTES">NOTES</a></H2><PRE>
@@ -89,7 +106,11 @@
 
 </PRE><H2><a name="h2-PORTABILITY">PORTABILITY</a></H2><PRE>
        These  functions were supported on Version 7, BSD or System V implemen-
-       tations.
+       tations.  None of those implementations checked the window parameter.
+
+       The <STRONG>getattrs</STRONG> function and macro are defined to return a (signed)  inte-
+       ger  for  compatibility with those implementations although an unsigned
+       type would have been more appropriate.
 
 
 </PRE><H2><a name="h2-SEE-ALSO">SEE ALSO</a></H2><PRE>

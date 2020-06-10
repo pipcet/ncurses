@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -46,7 +47,7 @@
 #undef CUR
 #define CUR SP_TERMTYPE
 
-MODULE_ID("$Id: lib_set_term.c,v 1.166 2017/07/01 16:37:24 tom Exp $")
+MODULE_ID("$Id: lib_set_term.c,v 1.171 2020/05/23 19:13:12 tom Exp $")
 
 #ifdef USE_TERM_DRIVER
 #define MaxColors      InfoOf(sp).maxcolors
@@ -339,8 +340,9 @@ NCURSES_SP_NAME(_nc_setupscreen) (
     sp->_next_screen = _nc_screen_chain;
     _nc_screen_chain = sp;
 
-    if ((sp->_current_attr = typeCalloc(NCURSES_CH_T, 1)) == 0)
+    if ((sp->_current_attr = typeCalloc(NCURSES_CH_T, 1)) == 0) {
 	returnCode(ERR);
+    }
 #endif
 
     /*
@@ -369,13 +371,19 @@ NCURSES_SP_NAME(_nc_setupscreen) (
 #ifdef USE_TERM_DRIVER
 	CallDriver(sp, td_setfilter);
 #else
-	clear_screen = 0;
-	cursor_down = parm_down_cursor = 0;
-	cursor_address = 0;
-	cursor_up = parm_up_cursor = 0;
-	row_address = 0;
+	/* *INDENT-EQLS* */
+	clear_screen     = ABSENT_STRING;
+	cursor_address   = ABSENT_STRING;
+	cursor_down      = ABSENT_STRING;
+	cursor_up        = ABSENT_STRING;
+	parm_down_cursor = ABSENT_STRING;
+	parm_up_cursor   = ABSENT_STRING;
+	row_address      = ABSENT_STRING;
+	cursor_home      = carriage_return;
 
-	cursor_home = carriage_return;
+	if (back_color_erase)
+	    clr_eos = ABSENT_STRING;
+
 #endif
 	T(("filter screensize %dx%d", slines, scolumns));
     }
@@ -744,9 +752,12 @@ NCURSES_SP_NAME(_nc_ripoffline) (NCURSES_SP_DCLx
 				 int (*init) (WINDOW *, int))
 {
     int code = ERR;
+    TR_FUNC_BFR(1);
 
     START_TRACE();
-    T((T_CALLED("ripoffline(%p,%d,%p)"), (void *) SP_PARM, line, TR_FUNC(init)));
+    T((T_CALLED("ripoffline(%p,%d,%s)"),
+       (void *) SP_PARM, line,
+       TR_FUNC_ARG(0, init)));
 
 #if NCURSES_SP_FUNCS
     if (SP_PARM != 0 && SP_PARM->_prescreen)

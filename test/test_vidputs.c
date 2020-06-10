@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2013-2014,2017 Free Software Foundation, Inc.              *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 2013-2014,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +27,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: test_vidputs.c,v 1.8 2017/06/24 17:48:17 tom Exp $
+ * $Id: test_vidputs.c,v 1.10 2020/02/02 23:34:34 tom Exp $
  *
  * Demonstrate the vidputs and vidattr functions.
  * Thomas Dickey - 2013/01/12
@@ -36,8 +37,6 @@
 #include <test.priv.h>
 
 #if HAVE_SETUPTERM && HAVE_VIDPUTS
-
-#define valid(s) ((s != 0) && s != (char *)-1)
 
 static FILE *my_fp;
 static bool p_opt = FALSE;
@@ -54,7 +53,7 @@ TPUTS_PROTO(outc, c)
 static bool
 outs(const char *s)
 {
-    if (valid(s)) {
+    if (VALID_STRING(s)) {
 	tputs(s, 1, outc);
 	return TRUE;
     }

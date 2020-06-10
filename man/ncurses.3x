@@ -1,6 +1,7 @@
 '\" t
 .\"***************************************************************************
-.\" Copyright (c) 1998-2015,2017 Free Software Foundation, Inc.              *
+.\" Copyright 2018-2019,2020 Thomas E. Dickey                                *
+.\" Copyright 1998-2015,2017 Free Software Foundation, Inc.                  *
 .\"                                                                          *
 .\" Permission is hereby granted, free of charge, to any person obtaining a  *
 .\" copy of this software and associated documentation files (the            *
@@ -27,7 +28,7 @@
 .\" authorization.                                                           *
 .\"***************************************************************************
 .\"
-.\" $Id: ncurses.3x,v 1.135 2017/08/12 22:27:43 tom Exp $
+.\" $Id: ncurses.3x,v 1.147 2020/03/21 23:38:25 tom Exp $
 .hy 0
 .TH ncurses 3X ""
 .ie \n(.g .ds `` \(lq
@@ -35,12 +36,13 @@
 .ie \n(.g .ds '' \(rq
 .el       .ds '' ''
 .de bP
-.IP \(bu 4
+.ie n  .IP \(bu 4
+.el    .IP \(bu 2
 ..
 .de NS
-.ie \n(.sp
+.ie n  .sp
 .el    .sp .5
-.ie \n(.in +4
+.ie n  .in +4
 .el    .in +2
 .nf
 .ft C			\" Courier
@@ -48,7 +50,8 @@
 .de NE
 .fi
 .ft R
-.in -4
+.ie n  .in -4
+.el    .in -2
 ..
 .ds n 5
 .ds d @TERMINFO@
@@ -265,7 +268,7 @@ There are two common configurations of the library:
 .RS 3
 .TP 5
 .I ncurses
-the "normal" library, which handles 8-bit characters.
+the \*(``normal\*('' library, which handles 8-bit characters.
 The normal (8-bit) library stores characters combined with attributes
 in \fBchtype\fP data.
 .IP
@@ -276,9 +279,10 @@ In either case, the data is stored in something like an integer.
 Each cell (row and column) in a \fBWINDOW\fP is stored as a \fBchtype\fP.
 .TP 5
 .I ncursesw
-the so-called "wide" library, which handles multibyte characters
+the so-called \*(``wide\*('' library, which handles multibyte characters
 (see the section on \fBALTERNATE CONFIGURATIONS\fP).
-The "wide" library includes all of the calls from the "normal" library.
+The \*(``wide\*('' library includes all of the calls
+from the \*(``normal\*('' library.
 It adds about one third more calls using data types which store
 multibyte characters:
 .RS 5
@@ -292,9 +296,13 @@ may be more than one character per cell.
 The video attributes and color are stored in separate fields of the structure.
 .IP
 Each cell (row and column) in a \fBWINDOW\fP is stored as a \fBcchar_t\fP.
+.IP
+The \fBsetcchar\fP(3X) and \fBgetcchar\fP(3X)
+functions store and retrieve the data from
+a \fBcchar_t\fP structure.
 .TP 5
 .B wchar_t
-stores a "wide" character.
+stores a \*(``wide\*('' character.
 Like \fBchtype\fP, this may be an integer.
 .TP 5
 .B wint_t
@@ -302,10 +310,10 @@ stores a \fBwchar_t\fP or \fBWEOF\fP \- not the same, though both may have
 the same size.
 .RE
 .IP
-The "wide" library provides new functions which are analogous to
-functions in the "normal" library.
+The \*(``wide\*('' library provides new functions which are analogous to
+functions in the \*(``normal\*('' library.
 There is a naming convention which relates many of the normal/wide variants:
-a "_w" is inserted into the name.
+a \*(``_w\*('' is inserted into the name.
 For example, \fBwaddch\fP becomes \fBwadd_wch\fP.
 .RE
 .PP
@@ -677,7 +685,7 @@ use_default_colors/\fBdefault_colors\fR(3X)*
 use_env/\fBcurs_util\fR(3X)
 use_extended_names/\fBcurs_extend\fR(3X)*
 use_legacy_coding/\fBlegacy_coding\fR(3X)*
-use_tioctl/\fBcurs_util\fR(3X)
+use_tioctl/\fBcurs_util\fR(3X)*
 vid_attr/\fBcurs_terminfo\fR(3X)
 vid_puts/\fBcurs_terminfo\fR(3X)
 vidattr/\fBcurs_terminfo\fR(3X)
@@ -790,6 +798,13 @@ The return values of
 \fBgetbegyx\fR, and
 \fBgetmaxyx\fR are undefined (i.e., these should not be used as the
 right-hand side of assignment statements).
+.PP
+Functions with a \*(``mv\*('' prefix first perform a cursor movement using
+\fBwmove\fP, and return an error if the position is outside the window,
+or if the window pointer is null.
+Most \*(``mv\*(''-prefixed functions
+(except variadic functions such as \fBmvprintw\fP)
+are provided both as macros and functions.
 .PP
 Routines that return pointers return \fBNULL\fR on error.
 .SH ENVIRONMENT
@@ -926,7 +941,7 @@ Setting it to an empty value disables the GPM interface;
 using the built-in support for xterm, etc.
 .PP
 If the environment variable is absent,
-ncurses will attempt to open GPM if \fBTERM\fP contains "linux".
+ncurses will attempt to open GPM if \fBTERM\fP contains \*(``linux\*(''.
 .SS NCURSES_NO_HARD_TABS
 .PP
 \fBNcurses\fP may use tabs as part of the cursor movement optimization.
@@ -943,7 +958,7 @@ setting this environment variable.
 .SS NCURSES_NO_PADDING
 .PP
 Most of the terminal descriptions in the terminfo database are written
-for real "hardware" terminals.
+for real \*(``hardware\*('' terminals.
 Many people use terminal emulators
 which run in a windowing environment and use curses-based applications.
 Terminal emulators can duplicate
@@ -1017,7 +1032,7 @@ and is likely to work for terminal emulators.
 .PP
 When setting this variable, you should set it to a nonzero value.
 Setting it to zero (or to a nonnumber)
-disables the special check for "linux" and "screen".
+disables the special check for \*(``linux\*('' and \*(``screen\*(''.
 .PP
 As an alternative to the environment variable,
 ncurses checks for an extended terminfo capability \fBU8\fP.
@@ -1039,7 +1054,7 @@ xterm-utf8|xterm relying on UTF-8 line-graphics,
 .ft
 .RE
 .PP
-The name "U8" is chosen to be two characters,
+The name \*(``U8\*('' is chosen to be two characters,
 to permit it to be used by applications that use ncurses'
 termcap interface.
 .SS NCURSES_TRACE
@@ -1079,8 +1094,8 @@ If the \fBncurses\fR library has been configured with \fItermcap\fR
 support, \fBncurses\fR will check for a terminal's description in
 termcap form if it is not available in the terminfo database.
 .PP
-The \fBTERMCAP\fP environment variable contains either a terminal description (with
-newlines stripped out),
+The \fBTERMCAP\fP environment variable contains
+either a terminal description (with newlines stripped out),
 or a file name telling where the information denoted by
 the \fBTERM\fP environment variable exists.
 In either case, setting it directs \fBncurses\fR to ignore
@@ -1088,7 +1103,8 @@ the usual place for this information, e.g., /etc/termcap.
 .SS TERMINFO
 .PP
 \fBncurses\fP can be configured to read from multiple terminal databases.
-The \fBTERMINFO\fP variable overrides the location for the default terminal database.
+The \fBTERMINFO\fP variable overrides the location for
+the default terminal database.
 Terminal descriptions (in terminal format) are stored in terminal databases:
 .bP
 Normally these are stored in a directory tree,
@@ -1214,7 +1230,7 @@ to build executables.
 The configure script renames the library and
 (if the \fB\-\-disable\-overwrite\fP option is used)
 puts the header files in a different subdirectory.
-All of the library names have a "w" appended to them,
+All of the library names have a \*(``w\*('' appended to them,
 i.e., instead of
 .NS
 \fB\-lncurses\fR
@@ -1225,12 +1241,34 @@ you link with
 \fB\-lncursesw\fR
 .NE
 .IP
-You must also define \fB_XOPEN_SOURCE_EXTENDED\fP when compiling for the
-wide-character library to use the extended (wide-character) functions.
+You must also enable the wide-character features in the header file
+when compiling for the wide-character library
+to use the extended (wide-character) functions.
+The symbol which enables these features has changed since XSI Curses, Issue 4:
+.RS
+.bP
+Originally, the wide-character feature required the symbol
+\fB_XOPEN_SOURCE_EXTENDED\fP
+but that was only valid for XPG4 (1996).
+.bP
+Later, that was deemed conflicting with \fB_XOPEN_SOURCE\fP defined to 500.
+.bP
+As of mid-2018,
+none of the features in this implementation require a \fB_XOPEN_SOURCE\fP
+feature greater than 600.
+However, X/Open Curses, Issue 7 (2009) recommends defining it to 700.
+.bP
+Alternatively, you can enable the feature by defining \fBNCURSES_WIDECHAR\fP
+with the caveat that some other header file than \fBcurses.h\fP
+may require a specific value for \fB_XOPEN_SOURCE\fP
+(or a system-specific symbol).
+.RE
+.IP
 The \fBcurses.h\fP file which is installed for the wide-character
 library is designed to be compatible with the normal library's header.
 Only the size of the \fBWINDOW\fP structure differs, and very few
 applications require more than a pointer to \fBWINDOW\fPs.
+.IP
 If the headers are installed allowing overwrite,
 the wide-character library's headers should be installed last,
 to allow applications to be built using either library
@@ -1238,8 +1276,8 @@ from the same set of headers.
 .TP 5
 \-\-with\-pthread
 The configure script renames the library.
-All of the library names have a "t" appended to them
-(before any "w" added by \fB\-\-enable\-widec\fP).
+All of the library names have a \*(``t\*('' appended to them
+(before any \*(``w\*('' added by \fB\-\-enable\-widec\fP).
 .IP
 The global variables such as \fBLINES\fP are replaced by macros to
 allow read-only access.
@@ -1255,8 +1293,8 @@ Some applications (very few) may require changes to work with this convention.
 \-\-with\-profile
 The shared and normal (static) library names differ by their suffixes,
 e.g., \fBlibncurses.so\fP and \fBlibncurses.a\fP.
-The debug and profiling libraries add a "_g" and a "_p" to the root
-names respectively,
+The debug and profiling libraries add a \*(``_g\*(''
+and a \*(``_p\*('' to the root names respectively,
 e.g., \fBlibncurses_g.a\fP and \fBlibncurses_p.a\fP.
 .TP 5
 \-\-with\-trace
@@ -1272,7 +1310,7 @@ directory containing initialization files for the terminal capability database
 terminal capability database
 .SH SEE ALSO
 \fBterminfo\fR(\*n) and related pages whose names begin
-"curs_" for detailed routine descriptions.
+\*(``curs_\*('' for detailed routine descriptions.
 .br
 \fBcurs_variables\fR(3X)
 .br
@@ -1323,6 +1361,10 @@ The EXTENDED XSI Curses functionality
 A small number of local differences (that is, individual differences between
 the XSI Curses and \fBncurses\fR calls) are described in \fBPORTABILITY\fR
 sections of the library man pages.
+.SS Error checking
+.PP
+In many cases, X/Open Curses is vague about error conditions,
+omitting some of the SVr4 documentation.
 .PP
 Unlike other implementations, this one checks parameters such as pointers
 to WINDOW structures to ensure they are not null.
@@ -1332,8 +1374,12 @@ The standard interface does not provide a way for the library
 to tell an application which of several possible errors were detected.
 Relying on this (or some other) extension will adversely affect the
 portability of curses applications.
+.SS Extensions versus portability
 .PP
-This implementation also contains several extensions:
+Most of the extensions provided by ncurses have not been standardized.
+Some have been incorporated into other implementations, such as
+PDCurses or NetBSD curses.
+Here are a few to consider:
 .bP
 The routine \fBhas_key\fR is not part of XPG4, nor is it present in SVr4.
 See the \fBcurs_getch\fR(3X) manual page for details.
@@ -1363,6 +1409,7 @@ See \fBcurs_threads\fR(3X) for details.
 This implementation can also be configured to provide a set of functions which
 improve the ability to manage multiple screens.
 See \fBcurs_sp_funcs\fR(3X) for details.
+.SS Padding differences
 .PP
 In historic curses versions, delays embedded in the capabilities \fBcr\fR,
 \fBind\fR, \fBcub1\fR, \fBff\fR and \fBtab\fR activated corresponding delay
@@ -1371,9 +1418,102 @@ In this implementation, all padding is done by sending NUL bytes.
 This method is slightly more expensive, but narrows the interface
 to the UNIX kernel significantly and increases the package's portability
 correspondingly.
-.SH NOTES
+.SS Header files
 The header file \fB<curses.h>\fR automatically includes the header files
 \fB<stdio.h>\fR and \fB<unctrl.h>\fR.
+.PP
+X/Open Curses has more to say,
+but does not finish the story:
+.RS 4
+.PP
+The inclusion of <curses.h> may make visible all symbols
+from the headers <stdio.h>, <term.h>, <termios.h>, and <wchar.h>.
+.RE
+.PP
+Here is a more complete story:
+.bP
+Starting with BSD curses, all implementations have included <stdio.h>.
+.IP
+BSD curses included <curses.h> and <unctrl.h> from an internal header
+"curses.ext" ("ext" was a short name for \fIexterns\fP).
+.IP
+BSD curses used <stdio.h> internally (for \fBprintw\fP and \fBscanw\fP),
+but nothing in <curses.h> itself relied upon <stdio.h>.
+.bP
+SVr2 curses added \fBnewterm\fP(3X), which relies upon <stdio.h>.
+That is, the function prototype uses \fBFILE\fP.
+.IP
+SVr4 curses added \fBputwin\fP and \fBgetwin\fP, which also use <stdio.h>.
+.IP
+X/Open Curses documents all three of these functions.
+.IP
+SVr4 curses and X/Open Curses do not require the developer to
+include <stdio.h> before including <curses.h>.
+Both document curses showing <curses.h> as the only required header.
+.IP
+As a result, standard <curses.h> will always include <stdio.h>.
+.bP
+X/Open Curses is inconsistent with respect to SVr4 regarding <unctrl.h>.
+.IP
+As noted in \fBcurs_util\fP(3X), ncurses includes <unctrl.h> from
+<curses.h> (like SVr4).
+.bP
+X/Open's comments about <term.h> and <termios.h> may refer to HP-UX and AIX:
+.IP
+HP-UX curses includes <term.h> from <curses.h>
+to declare \fBsetupterm\fP in curses.h,
+but ncurses (and Solaris curses) do not.
+.IP
+AIX curses includes <term.h> and <termios.h>.
+Again, ncurses (and Solaris curses) do not.
+.bP
+X/Open says that <curses.h> \fImay\fP include <term.h>,
+but there is no requirement that it do that.
+.IP
+Some programs use functions declared in both <curses.h> and <term.h>,
+and must include both headers in the same module.
+Very old versions of AIX curses required including <curses.h>
+before including <term.h>.
+.IP
+Because ncurses header files include the headers needed to
+define datatypes used in the headers,
+ncurses header files can be included in any order.
+But for portability, you should include <curses.h> before <term.h>.
+.bP
+X/Open Curses says \fI"may make visible"\fP
+because including a header file does not necessarily make all symbols
+in it visible (there are ifdef's to consider).
+.IP
+For instance, in ncurses <wchar.h> \fImay\fP be included if
+the proper symbol is defined, and if ncurses is configured for
+wide-character support.
+If the header is included, its symbols may be made visible.
+That depends on the value used for \fB_XOPEN_SOURCE\fP
+feature test macro.
+.bP
+X/Open Curses documents one required header,
+in a special case: <stdarg.h> before <curses.h> to prototype
+the \fBvw_printw\fP and \fBvw_scanw\fP functions
+(as well as the obsolete
+the \fBvwprintw\fP and \fBvwscanw\fP functions).
+Each of those uses a \fBva_list\fP parameter.
+.IP
+The two obsolete functions were introduced in SVr3.
+The other functions were introduced in X/Open Curses.
+In between, SVr4 curses provided for the possibility that
+an application might include either <varargs.h> or <stdarg.h>.
+Initially, that was done by using \fBvoid*\fP for the \fBva_list\fP
+parameter.
+Later, a special type (defined in <stdio.h>) was introduced,
+to allow for compiler type-checking.
+That special type is always available,
+because <stdio.h> is always included by <curses.h>.
+.IP
+None of the X/Open Curses implementations require an application
+to include <stdarg.h> before <curses.h> because they either
+have allowed for a special type, or (like ncurses) include <stdarg.h>
+directly to provide a portable interface.
+.SH NOTES
 .PP
 If standard output from a \fBncurses\fR program is re-directed to something
 which is not a tty, screen updates will be directed to standard error.

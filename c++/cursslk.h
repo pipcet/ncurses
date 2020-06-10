@@ -1,6 +1,7 @@
 // * this is for making emacs happy: -*-Mode: C++;-*-
 /****************************************************************************
- * Copyright (c) 1998-2003,2005 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2003,2005 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -31,7 +32,7 @@
  *   Author: Juergen Pfeifer, 1997                                          *
  ****************************************************************************/
 
-// $Id: cursslk.h,v 1.13 2005/05/28 21:58:18 tom Exp $
+// $Id: cursslk.h,v 1.16 2020/02/29 15:46:00 anonymous.maarten Exp $
 
 #ifndef NCURSES_CURSSLK_H_incl
 #define NCURSES_CURSSLK_H_incl
@@ -100,10 +101,10 @@ public:
   } Label_Layout;
 
 private:
-  static long NCURSES_IMPEXP count;               // Number of Key Sets
-  static Label_Layout NCURSES_IMPEXP  format;     // Layout of the Key Sets
-  static int  NCURSES_IMPEXP num_labels;          // Number Of Labels in Key Sets
-  bool NCURSES_IMPEXP b_attrInit;                 // Are attributes initialized
+  static long count;               // Number of Key Sets
+  static Label_Layout  format;     // Layout of the Key Sets
+  static int  num_labels;          // Number Of Labels in Key Sets
+  bool b_attrInit;                 // Are attributes initialized
 
   Soft_Label_Key *slk_array;       // The array of SLK's
 
@@ -143,7 +144,7 @@ public:
 
   // This constructor assumes, that you already constructed a Key Set
   // with a layout by the constructor above. This layout will be reused.
-  NCURSES_IMPEXP Soft_Label_Key_Set();
+  Soft_Label_Key_Set();
 
   Soft_Label_Key_Set& operator=(const Soft_Label_Key_Set& rhs)
   {
@@ -161,10 +162,10 @@ public:
     init();		// allocate a new slk_array[]
   }
 
-  virtual ~Soft_Label_Key_Set();
+  virtual ~Soft_Label_Key_Set() THROWS(NCursesException);
 
   // Get Label# i. Label counting starts with 1!
-  NCURSES_IMPEXP Soft_Label_Key& operator[](int i);
+  Soft_Label_Key& operator[](int i);
 
   // Retrieve number of Labels
   inline int labels() const { return num_labels; }

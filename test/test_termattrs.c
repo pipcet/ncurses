@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2017 Free Software Foundation, Inc.                        *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 2017 Free Software Foundation, Inc.                            *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +27,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: test_termattrs.c,v 1.1 2017/06/24 18:26:15 tom Exp $
+ * $Id: test_termattrs.c,v 1.3 2020/02/02 23:34:34 tom Exp $
  *
  * Demonstrate the termattrs and term_attrs functions.
  */
@@ -35,8 +36,6 @@
 #include <test.priv.h>
 
 #if HAVE_SETUPTERM
-
-#define valid(s) ((s != 0) && s != (char *)-1)
 
 static FILE *my_fp;
 

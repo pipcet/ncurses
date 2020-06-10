@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2009-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 2009-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,14 +27,13 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: test_addchstr.c,v 1.21 2017/04/15 14:09:14 tom Exp $
+ * $Id: test_addchstr.c,v 1.25 2020/02/02 23:34:34 tom Exp $
  *
  * Demonstrate the waddchstr() and waddch functions.
  * Thomas Dickey - 2009/9/12
  */
 
 #include <test.priv.h>
-
 #include <linedata.h>
 
 /*
@@ -65,7 +65,7 @@ static bool pass_ctls = FALSE;
 static bool w_opt = FALSE;
 static int n_opt = -1;
 
-static attr_t show_attr;
+static chtype show_attr;
 static chtype *temp_buffer;
 static size_t temp_length;
 
@@ -283,7 +283,7 @@ recursive_test(int level)
     doupdate();
 
     if (has_colors()) {
-	show_attr = (attr_t) COLOR_PAIR(1);
+	show_attr = (chtype) COLOR_PAIR(1);
 	wbkgdset(work, show_attr | ' ');
     } else {
 	show_attr = A_STANDOUT;

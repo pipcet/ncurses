@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2006-2014,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 2006-2014,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -26,7 +27,7 @@
  * authorization.                                                           *
  ****************************************************************************/
 /*
- * $Id: echochar.c,v 1.13 2017/04/15 13:38:37 tom Exp $
+ * $Id: echochar.c,v 1.21 2020/02/02 23:34:34 tom Exp $
  *
  * Demonstrate the echochar function (compare to dots.c).
  * Thomas Dickey - 2006/11/4
@@ -36,8 +37,6 @@
 
 #include <time.h>
 
-#define valid(s) ((s != 0) && s != (char *)-1)
-
 static bool interrupted = FALSE;
 static long total_chars = 0;
 static time_t started;
@@ -45,9 +44,9 @@ static time_t started;
 static void
 cleanup(void)
 {
-    endwin();
+    stop_curses();
 
-    printf("\n\n%ld total chars, rate %.2f/sec\n",
+    printf("\n\n%ld total cells, rate %.2f/sec\n",
 	   total_chars,
 	   ((double) (total_chars) / (double) (time((time_t *) 0) - started)));
 }
@@ -83,7 +82,7 @@ int
 main(int argc GCC_UNUSED,
      char *argv[]GCC_UNUSED)
 {
-    int ch, x, y, z, p;
+    int ch;
     double r;
     double c;
     bool use_colors;
@@ -98,13 +97,12 @@ main(int argc GCC_UNUSED,
 	    opt_r = TRUE;
 	    break;
 	default:
-	    fprintf(stderr, "usage: echochar [-r]\n");
+	    fprintf(stderr, "Usage: echochar [-r]\n");
 	    ExitProgram(EXIT_FAILURE);
 	}
     }
 
-    CATCHALL(onsig);
-    initscr();
+    InitAndCatch(initscr(), onsig);
 
     use_colors = has_colors();
     if (use_colors) {
@@ -124,13 +122,13 @@ main(int argc GCC_UNUSED,
     started = time((time_t *) 0);
 
     while (!interrupted) {
-	x = (int) (c * ranf()) + 2;
-	y = (int) (r * ranf()) + 2;
-	p = (ranf() > 0.9) ? '*' : ' ';
+	int x = (int) (c * ranf()) + 2;
+	int y = (int) (r * ranf()) + 2;
+	int p = (ranf() > 0.9) ? '*' : ' ';
 
 	move(y, x);
 	if (use_colors > 0) {
-	    z = (int) (ranf() * COLORS);
+	    int z = (int) (ranf() * COLORS);
 	    if (ranf() > 0.01) {
 		set_color(my_pairs, z, last_bg);
 		last_fg = z;

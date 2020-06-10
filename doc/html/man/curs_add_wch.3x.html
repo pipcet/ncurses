@@ -1,6 +1,7 @@
 <!-- 
   ****************************************************************************
-  * Copyright (c) 2001-2015,2017 Free Software Foundation, Inc.              *
+  * Copyright 2019,2020 Thomas E. Dickey                                     *
+  * Copyright 2001-2015,2017 Free Software Foundation, Inc.                  *
   *                                                                          *
   * Permission is hereby granted, free of charge, to any person obtaining a  *
   * copy of this software and associated documentation files (the            *
@@ -26,15 +27,15 @@
   * sale, use or other dealings in this Software without prior written       *
   * authorization.                                                           *
   ****************************************************************************
-  * @Id: curs_add_wch.3x,v 1.23 2017/05/20 14:45:24 Sven.Joachim Exp @
+  * @Id: curs_add_wch.3x,v 1.27 2020/03/22 00:25:15 tom Exp @
 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <HTML>
 <HEAD>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta name="generator" content="Manpage converted by man2html - see http://invisible-island.net/scripts/readme.html#others_scripts">
+<meta name="generator" content="Manpage converted by man2html - see https://invisible-island.net/scripts/readme.html#others_scripts">
 <TITLE>curs_add_wch 3x</TITLE>
-<link rev=made href="mailto:bug-ncurses@gnu.org">
+<link rel="author" href="mailto:bug-ncurses@gnu.org">
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 </HEAD>
 <BODY>
@@ -138,24 +139,7 @@
        WACS_VLINE        0x2502     |         x       vertical line
 
        The wide-character configuration of ncurses also  defines  symbols  for
-       double-lines:
-
-       <STRONG>ACS</STRONG>               <STRONG>Unicode</STRONG>   <STRONG>ASCII</STRONG>     <STRONG>acsc</STRONG>    <STRONG>Glyph</STRONG>
-       <STRONG>Name</STRONG>              <STRONG>Default</STRONG>   <STRONG>Default</STRONG>   <STRONG>char</STRONG>    <STRONG>Name</STRONG>
-       ------------------------------------------------------------------------
-       WACS_D_BTEE       0x2569    +         H       double tee pointing up
-       WACS_D_HLINE      0x2550    -         R       double horizontal line
-       WACS_D_LLCORNER   0x255a    +         D       double lower left corner
-       WACS_D_LRCORNER   0x255d    +         A       double lower right corner
-       WACS_D_LTEE       0x2560    +         F       double tee pointing right
-       WACS_D_PLUS       0x256c    +         E       double large plus
-       WACS_D_RTEE       0x2563    +         G       double tee pointing left
-       WACS_D_TTEE       0x2566    +         I       double tee pointing down
-       WACS_D_ULCORNER   0x2554    +         C       double upper left corner
-       WACS_D_URCORNER   0x2557    +         B       double upper right corner
-       WACS_D_VLINE      0x2551    |         Y       double vertical line
-
-       and for thick lines:
+       thick lines (<STRONG>acsc</STRONG> "J" to "V"):
 
        <STRONG>ACS</STRONG>               <STRONG>Unicode</STRONG>   <STRONG>ASCII</STRONG>     <STRONG>acsc</STRONG>    <STRONG>Glyph</STRONG>
        <STRONG>Name</STRONG>              <STRONG>Default</STRONG>   <STRONG>Default</STRONG>   <STRONG>char</STRONG>    <STRONG>Name</STRONG>
@@ -172,9 +156,54 @@
        WACS_T_URCORNER   0x2513    +         K       thick upper right corner
        WACS_T_VLINE      0x2503    |         X       thick vertical line
 
+       and for double-lines (<STRONG>acsc</STRONG> "A" to "I"):
+
+       <STRONG>ACS</STRONG>               <STRONG>Unicode</STRONG>   <STRONG>ASCII</STRONG>     <STRONG>acsc</STRONG>    <STRONG>Glyph</STRONG>
+       <STRONG>Name</STRONG>              <STRONG>Default</STRONG>   <STRONG>Default</STRONG>   <STRONG>char</STRONG>    <STRONG>Name</STRONG>
+       ------------------------------------------------------------------------
+       WACS_D_BTEE       0x2569    +         H       double tee pointing up
+       WACS_D_HLINE      0x2550    -         R       double horizontal line
+       WACS_D_LLCORNER   0x255a    +         D       double lower left corner
+       WACS_D_LRCORNER   0x255d    +         A       double lower right corner
+       WACS_D_LTEE       0x2560    +         F       double tee pointing right
+       WACS_D_PLUS       0x256c    +         E       double large plus
+       WACS_D_RTEE       0x2563    +         G       double tee pointing left
+       WACS_D_TTEE       0x2566    +         I       double tee pointing down
+       WACS_D_ULCORNER   0x2554    +         C       double upper left corner
+       WACS_D_URCORNER   0x2557    +         B       double upper right corner
+       WACS_D_VLINE      0x2551    |         Y       double vertical line
+
+       Unicode's  descriptions  for  these  characters  differs  slightly from
+       ncurses, by introducing the term "light"  (along  with  less  important
+       details).   Here are its descriptions for the normal, thick, and double
+       horizontal lines:
+
+       <STRONG>o</STRONG>   U+2500 BOX DRAWINGS LIGHT HORIZONTAL
+
+       <STRONG>o</STRONG>   U+2501 BOX DRAWINGS HEAVY HORIZONTAL
+
+       <STRONG>o</STRONG>   U+2550 BOX DRAWINGS DOUBLE HORIZONTAL
+
 
 </PRE><H2><a name="h2-RETURN-VALUE">RETURN VALUE</a></H2><PRE>
        All routines return the integer <STRONG>ERR</STRONG> upon failure and <STRONG>OK</STRONG> on success.
+
+       X/Open does not  define  any  error  conditions.   This  implementation
+       returns an error
+
+       <STRONG>o</STRONG>   if the window pointer is null or
+
+       <STRONG>o</STRONG>   if it is not possible to add a complete character in the window.
+
+       The latter may be due to different causes:
+
+       <STRONG>o</STRONG>   If  <STRONG>scrollok</STRONG> is not enabled, writing a character at the lower right
+           margin succeeds.  However, an error is returned because it  is  not
+           possible to wrap to a new line
+
+       <STRONG>o</STRONG>   If  an error is detected when converting a multibyte character to a
+           sequence of bytes, or if it is not  possible  to  add  all  of  the
+           resulting bytes in the window, an error is returned.
 
        Functions  with  a  "mv"  prefix  first perform a cursor movement using
        <STRONG>wmove</STRONG>, and return an error if the position is outside the window, or if

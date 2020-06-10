@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2005-2012,2017 Free Software Foundation, Inc.              *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 2005-2012,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -36,7 +37,7 @@
 
 #include <tic.h>
 
-MODULE_ID("$Id: trim_sgr0.c,v 1.17 2017/08/26 14:54:16 tom Exp $")
+MODULE_ID("$Id: trim_sgr0.c,v 1.20 2020/05/27 23:54:31 tom Exp $")
 
 #undef CUR
 #define CUR tp->
@@ -51,7 +52,7 @@ set_attribute_9(TERMTYPE2 *tp, int flag)
     const char *value;
     char *result;
 
-    value = tparm(set_attributes, 0, 0, 0, 0, 0, 0, 0, 0, flag);
+    value = TIPARM_9(set_attributes, 0, 0, 0, 0, 0, 0, 0, 0, flag);
     if (PRESENT(value))
 	result = strdup(value);
     else

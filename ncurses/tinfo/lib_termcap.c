@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -48,7 +49,7 @@
 #define CUR SP_TERMTYPE
 #endif
 
-MODULE_ID("$Id: lib_termcap.c,v 1.84 2017/04/11 01:15:11 tom Exp $")
+MODULE_ID("$Id: lib_termcap.c,v 1.88 2020/02/02 23:34:34 tom Exp $")
 
 NCURSES_EXPORT_VAR(char *) UP = 0;
 NCURSES_EXPORT_VAR(char *) BC = 0;
@@ -100,8 +101,7 @@ NCURSES_SP_NAME(tgetent) (NCURSES_SP_DCLx char *bufp, const char *name)
     START_TRACE();
     T((T_CALLED("tgetent()")));
 
-    TINFO_SETUP_TERM(&termp, (NCURSES_CONST char *) name,
-		     STDOUT_FILENO, &rc, TRUE);
+    TINFO_SETUP_TERM(&termp, name, STDOUT_FILENO, &rc, TRUE);
 
 #ifdef USE_TERM_DRIVER
     if (termp == 0 ||
@@ -153,8 +153,12 @@ NCURSES_SP_NAME(tgetent) (NCURSES_SP_DCLx char *bufp, const char *name)
 	}
 	CacheInx = best;
     }
-    LAST_TRM = TerminalOf(SP_PARM);
-    LAST_SEQ = ++CacheSeq;
+    if (rc == 1) {
+	LAST_TRM = TerminalOf(SP_PARM);
+	LAST_SEQ = ++CacheSeq;
+    } else {
+	LAST_TRM = 0;
+    }
 
     PC = 0;
     UP = 0;
@@ -231,7 +235,7 @@ same_tcname(const char *a, const char *b)
  ***************************************************************************/
 
 NCURSES_EXPORT(int)
-NCURSES_SP_NAME(tgetflag) (NCURSES_SP_DCLx NCURSES_CONST char *id)
+NCURSES_SP_NAME(tgetflag) (NCURSES_SP_DCLx const char *id)
 {
     int result = 0;		/* Solaris returns zero for missing flag */
 
@@ -267,7 +271,7 @@ NCURSES_SP_NAME(tgetflag) (NCURSES_SP_DCLx NCURSES_CONST char *id)
 
 #if NCURSES_SP_FUNCS
 NCURSES_EXPORT(int)
-tgetflag(NCURSES_CONST char *id)
+tgetflag(const char *id)
 {
     return NCURSES_SP_NAME(tgetflag) (CURRENT_SCREEN, id);
 }
@@ -283,7 +287,7 @@ tgetflag(NCURSES_CONST char *id)
  ***************************************************************************/
 
 NCURSES_EXPORT(int)
-NCURSES_SP_NAME(tgetnum) (NCURSES_SP_DCLx NCURSES_CONST char *id)
+NCURSES_SP_NAME(tgetnum) (NCURSES_SP_DCLx const char *id)
 {
     int result = ABSENT_NUMERIC;
 
@@ -319,7 +323,7 @@ NCURSES_SP_NAME(tgetnum) (NCURSES_SP_DCLx NCURSES_CONST char *id)
 
 #if NCURSES_SP_FUNCS
 NCURSES_EXPORT(int)
-tgetnum(NCURSES_CONST char *id)
+tgetnum(const char *id)
 {
     return NCURSES_SP_NAME(tgetnum) (CURRENT_SCREEN, id);
 }
@@ -335,7 +339,7 @@ tgetnum(NCURSES_CONST char *id)
  ***************************************************************************/
 
 NCURSES_EXPORT(char *)
-NCURSES_SP_NAME(tgetstr) (NCURSES_SP_DCLx NCURSES_CONST char *id, char **area)
+NCURSES_SP_NAME(tgetstr) (NCURSES_SP_DCLx const char *id, char **area)
 {
     char *result = NULL;
 
@@ -385,7 +389,7 @@ NCURSES_SP_NAME(tgetstr) (NCURSES_SP_DCLx NCURSES_CONST char *id, char **area)
 
 #if NCURSES_SP_FUNCS
 NCURSES_EXPORT(char *)
-tgetstr(NCURSES_CONST char *id, char **area)
+tgetstr(const char *id, char **area)
 {
     return NCURSES_SP_NAME(tgetstr) (CURRENT_SCREEN, id, area);
 }
@@ -401,7 +405,7 @@ _nc_tgetent_leak(TERMINAL *termp)
 	int num;
 	for (CacheInx = 0; CacheInx < TGETENT_MAX; ++CacheInx) {
 	    if (LAST_TRM == termp) {
-		FreeIfNeeded(FIX_SGR0);
+		FreeAndNull(FIX_SGR0);
 		if (LAST_TRM != 0) {
 		    LAST_TRM = 0;
 		}

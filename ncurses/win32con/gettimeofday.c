@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 2008-2010,2014 Free Software Foundation, Inc.              *
+ * Copyright 2020 Thomas E. Dickey                                          *
+ * Copyright 2008-2010,2014 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -35,9 +36,13 @@
 
 #include <windows.h>
 
-MODULE_ID("$Id: gettimeofday.c,v 1.3 2014/04/26 19:41:34 juergen Exp $")
+MODULE_ID("$Id: gettimeofday.c,v 1.5 2020/02/29 15:46:00 anonymous.maarten Exp $")
 
 #define JAN1970 116444736000000000LL	/* the value for 01/01/1970 00:00 */
+
+#ifdef _MSC_VER
+#include <winsock2.h>
+#endif
 
 int
 gettimeofday(struct timeval *tv, void *tz GCC_UNUSED)

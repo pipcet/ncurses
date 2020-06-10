@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2016,2017 Free Software Foundation, Inc.              *
+ * Copyright 2019,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2016,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -29,7 +30,7 @@
 /*
  * Author:  Thomas E. Dickey 1998
  *
- * $Id: filter.c,v 1.29 2017/06/17 18:16:39 tom Exp $
+ * $Id: filter.c,v 1.34 2020/02/02 23:34:34 tom Exp $
  *
  * An example of the 'filter()' function in ncurses, this program prompts
  * for commands and executes them (like a command shell).  It illustrates
@@ -100,12 +101,11 @@ static int
 new_command(char *buffer, int length, int underline, bool clocked, bool polled)
 {
     int code = OK;
-    int limit;
 
     if (polled) {
 	bool done = FALSE;
 	bool first = TRUE;
-	int y, x;
+	int y = 0, x = 0;
 	int n;
 	int mark = 0;
 	int used = 0;
@@ -113,6 +113,7 @@ new_command(char *buffer, int length, int underline, bool clocked, bool polled)
 
 	timeout(20);		/* no one types 50CPS... */
 	while (!done) {
+	    int limit;
 	    int ch = getch();
 
 	    buffer[used] = '\0';
@@ -253,7 +254,7 @@ new_command(char *buffer, int length, int underline, bool clocked, bool polled)
     }
     attroff(underline);
     attroff(A_BOLD);
-    printw("\n");
+    refresh();
 
     return code;
 }
@@ -308,6 +309,9 @@ usage(void)
 	,"  -a   suppress xterm alternate-screen by amending smcup/rmcup"
 #endif
 	,"  -c   show current time on prompt line with \"Command\""
+#if HAVE_USE_DEFAULT_COLORS
+	,"  -d   invoke use_default_colors"
+#endif
 	,"  -i   use initscr() rather than newterm()"
 	,"  -p   poll for individual characters rather than using getnstr"
     };
@@ -327,12 +331,15 @@ main(int argc, char *argv[])
     bool a_option = FALSE;
 #endif
     bool c_option = FALSE;
+#if HAVE_USE_DEFAULT_COLORS
+    bool d_option = FALSE;
+#endif
     bool i_option = FALSE;
     bool p_option = FALSE;
 
     setlocale(LC_ALL, "");
 
-    while ((ch = getopt(argc, argv, "acip")) != -1) {
+    while ((ch = getopt(argc, argv, "adcip")) != -1) {
 	switch (ch) {
 #ifdef NCURSES_VERSION
 	case 'a':
@@ -342,6 +349,11 @@ main(int argc, char *argv[])
 	case 'c':
 	    c_option = TRUE;
 	    break;
+#if HAVE_USE_DEFAULT_COLORS
+	case 'd':
+	    d_option = TRUE;
+	    break;
+#endif
 	case 'i':
 	    i_option = TRUE;
 	    break;
@@ -376,7 +388,7 @@ main(int argc, char *argv[])
 	int background = COLOR_BLACK;
 	start_color();
 #if HAVE_USE_DEFAULT_COLORS
-	if (use_default_colors() != ERR)
+	if (d_option && (use_default_colors() != ERR))
 	    background = -1;
 #endif
 	init_pair(1, COLOR_CYAN, (short) background);

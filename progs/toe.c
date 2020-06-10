@@ -1,5 +1,6 @@
 /****************************************************************************
- * Copyright (c) 1998-2013,2017 Free Software Foundation, Inc.              *
+ * Copyright 2018,2020 Thomas E. Dickey                                     *
+ * Copyright 1998-2013,2017 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
  * copy of this software and associated documentation files (the            *
@@ -44,7 +45,7 @@
 #include <hashed_db.h>
 #endif
 
-MODULE_ID("$Id: toe.c,v 1.75 2017/04/05 23:19:24 tom Exp $")
+MODULE_ID("$Id: toe.c,v 1.79 2020/02/02 23:34:34 tom Exp $")
 
 #define isDotname(name) (!strcmp(name, ".") || !strcmp(name, ".."))
 
@@ -440,11 +441,8 @@ typelist(int eargc, char *eargv[],
 			(void) fprintf(stderr,
 				       "%s: couldn't open terminfo file %s.\n",
 				       _nc_progname, name_2);
-			free(cwd_buf);
 			free(name_2);
-			closedir(entrydir);
-			closedir(termdir);
-			return (EXIT_FAILURE);
+			continue;
 		    }
 
 		    /* only visit things once, by primary name */
@@ -489,7 +487,7 @@ typelist(int eargc, char *eargv[],
 				cn = _nc_first_name(lterm.term_names);
 				/* apply the selected hook function */
 				hook(i, eargc, cn, &lterm);
-				_nc_free_termtype(&lterm);
+				_nc_free_termtype2(&lterm);
 			    }
 			}
 			code = _nc_db_next(capdbp, &key, &data);
@@ -500,8 +498,8 @@ typelist(int eargc, char *eargv[],
 		}
 	    }
 	}
-#endif
-#endif
+#endif /* USE_HASHED_DB */
+#endif /* NCURSES_USE_DATABASE */
 #if NCURSES_USE_TERMCAP
 #if HAVE_BSD_CGETENT
 	{
@@ -703,6 +701,8 @@ main(int argc, char *argv[])
 
 	    _nc_first_db(&state, &offset);
 	    while ((path = _nc_next_db(&state, &offset)) != 0) {
+		if (quick_prefix(path))
+		    continue;
 		if (pass) {
 		    eargv[count] = strmalloc(path);
 		}
@@ -728,7 +728,8 @@ main(int argc, char *argv[])
 	    failed("eargv");
 	_nc_first_db(&state, &offset);
 	if ((path = _nc_next_db(&state, &offset)) != 0) {
-	    eargv[count++] = strmalloc(path);
+	    if (!quick_prefix(path))
+		eargv[count++] = strmalloc(path);
 	}
 
 	code = typelist((int) count, eargv, header, hook);
