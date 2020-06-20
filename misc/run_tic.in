@@ -93,6 +93,7 @@ else
 	SHLIB=
 	# reset $suffix, since it applies to the target, not the build platform.
 	suffix=
+	exit 0
 fi
 
 
