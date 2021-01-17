@@ -30,14 +30,14 @@
 /*
  * Author: Thomas E. Dickey
  *
- * $Id: dots_termcap.c,v 1.24 2020/05/29 23:04:02 tom Exp $
+ * $Id: dots_termcap.c,v 1.26 2020/09/05 17:58:47 juergen Exp $
  *
  * A simple demo of the termcap interface.
  */
 #define USE_TINFO
 #include <test.priv.h>
 
-#if !defined(_WIN32)
+#if !defined(_NC_WINDOWS)
 #include <sys/time.h>
 #endif
 
@@ -154,8 +154,8 @@ static void
 my_napms(int ms)
 {
     if (ms > 0) {
-#if defined(_WIN32) || !HAVE_GETTIMEOFDAY
-	Sleep((DWORD) ms);
+#if defined(_NC_WINDOWS) || !HAVE_GETTIMEOFDAY
+	Sleep((unsigned int) ms);
 #else
 	struct timeval data;
 	data.tv_sec = 0;

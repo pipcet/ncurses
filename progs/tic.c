@@ -49,7 +49,7 @@
 #include <parametrized.h>
 #include <transform.h>
 
-MODULE_ID("$Id: tic.c,v 1.286 2020/05/31 21:05:44 tom Exp $")
+MODULE_ID("$Id: tic.c,v 1.290 2020/11/14 18:16:33 tom Exp $")
 
 #define STDIN_NAME "<stdin>"
 
@@ -2180,6 +2180,9 @@ check_1_infotocap(const char *name, NCURSES_CONST char *value, int count)
     char *result;
     char blob[NUM_PARM * 10];
     char *next = blob;
+    TParams expect;
+    TParams actual;
+    int nparam;
 
     *next++ = '\0';
     for (k = 1; k <= NUM_PARM; k++) {
@@ -2191,7 +2194,16 @@ check_1_infotocap(const char *name, NCURSES_CONST char *value, int count)
 	next += strlen(next) + 1;
     }
 
-    switch (tparm_type(name)) {
+    expect = tparm_type(name);
+    nparam = _nc_tparm_analyze(value, p_is_s, &ignored);
+    actual = guess_tparm_type(nparam, p_is_s);
+
+    if (expect != actual) {
+	_nc_warning("%s has mismatched parameters", name);
+	actual = Other;
+    }
+
+    switch (actual) {
     case Num_Str:
 	result = TPARM_2(value, numbers[1], strings[2]);
 	break;
@@ -2212,8 +2224,8 @@ check_1_infotocap(const char *name, NCURSES_CONST char *value, int count)
 			  myParam(9));
 #undef myParam
 	break;
+    case Other:
     default:
-	(void) _nc_tparm_analyze(value, p_is_s, &ignored);
 #define myParam(n) (p_is_s[n - 1] != 0 ? ((TPARM_ARG) strings[n]) : numbers[n])
 	result = TPARM_9(value,
 			 myParam(1),
@@ -2360,14 +2372,13 @@ check_infotocap(TERMTYPE2 *tp, int i, const char *value)
 		  ? parametrized[i]
 		  : ((*value == 'k')
 		     ? 0
-		     : has_params(value)));
-    int to_char = 0;
+		     : has_params(value, FALSE)));
     char *ti_value;
     char *tc_value;
     bool embedded;
 
     assert(SIZEOF(parametrized) == STRCOUNT);
-    if ((ti_value = _nc_tic_expand(value, TRUE, to_char)) == ABSENT_STRING) {
+    if (!VALID_STRING(value) || (ti_value = strdup(value)) == NULL) {
 	_nc_warning("tic-expansion of %s failed", name);
     } else if ((tc_value = _nc_infotocap(name, ti_value, params)) == ABSENT_STRING) {
 	_nc_warning("tic-conversion of %s failed", name);
@@ -2390,12 +2401,14 @@ check_infotocap(TERMTYPE2 *tp, int i, const char *value)
 	    if (strcmp(ti_check, tc_check)) {
 		if (first) {
 		    fprintf(stderr, "check_infotocap(%s)\n", name);
-		    fprintf(stderr, "...ti '%s'\n", ti_value);
-		    fprintf(stderr, "...tc '%s'\n", tc_value);
+		    fprintf(stderr, "...ti '%s'\n", _nc_visbuf2(0, ti_value));
+		    fprintf(stderr, "...tc '%s'\n", _nc_visbuf2(0, tc_value));
 		    first = FALSE;
 		}
 		_nc_warning("tparm-conversion of %s(%d) differs between\n\tterminfo %s\n\ttermcap  %s",
-			    name, count, ti_check, tc_check);
+			    name, count,
+			    _nc_visbuf2(0, ti_check),
+			    _nc_visbuf2(1, tc_check));
 	    }
 	    free(ti_check);
 	    free(tc_check);
@@ -2530,6 +2543,13 @@ similar_sgr(int num, char *a, char *b)
     return ((num != 0) || (*a == 0));
 }
 
+static void
+check_tparm_err(int num)
+{
+    if (_nc_tparm_err)
+	_nc_warning("tparam error in sgr(%d): %s", num, sgr_names[num]);
+}
+
 static char *
 check_sgr(TERMTYPE2 *tp, char *zero, int num, char *cap, const char *name)
 {
@@ -2560,8 +2580,7 @@ check_sgr(TERMTYPE2 *tp, char *zero, int num, char *cap, const char *name)
     } else if (PRESENT(cap)) {
 	_nc_warning("sgr(%d) missing, but %s present", num, name);
     }
-    if (_nc_tparm_err)
-	_nc_warning("stack error in sgr(%d) string", num);
+    check_tparm_err(num);
     return test;
 }
 
@@ -2995,8 +3014,7 @@ check_termtype(TERMTYPE2 *tp, bool literal)
 	} else {
 	    zero = strdup(TIPARM_9(set_attributes, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 	}
-	if (_nc_tparm_err)
-	    _nc_warning("stack error in sgr(0) string");
+	check_tparm_err(0);
 
 	if (zero != 0) {
 	    CHECK_SGR(1, enter_standout_mode);

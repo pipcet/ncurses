@@ -27,7 +27,7 @@
   * sale, use or other dealings in this Software without prior written       *
   * authorization.                                                           *
   ****************************************************************************
-  * @Id: curs_scanw.3x,v 1.27 2020/03/15 00:14:30 tom Exp @
+  * @Id: curs_scanw.3x,v 1.28 2020/10/24 09:29:26 tom Exp @
 -->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <HTML>
@@ -54,14 +54,15 @@
 </PRE><H2><a name="h2-SYNOPSIS">SYNOPSIS</a></H2><PRE>
        <STRONG>#include</STRONG> <STRONG>&lt;curses.h&gt;</STRONG>
 
-       <STRONG>int</STRONG> <STRONG>scanw(const</STRONG> <STRONG>char</STRONG> <STRONG>*fmt,</STRONG> <STRONG>...);</STRONG>
-       <STRONG>int</STRONG> <STRONG>wscanw(WINDOW</STRONG> <STRONG>*win,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*fmt,</STRONG> <STRONG>...);</STRONG>
-       <STRONG>int</STRONG> <STRONG>mvscanw(int</STRONG> <STRONG>y,</STRONG> <STRONG>int</STRONG> <STRONG>x,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*fmt,</STRONG> <STRONG>...);</STRONG>
-       <STRONG>int</STRONG> <STRONG>mvwscanw(WINDOW</STRONG> <STRONG>*win,</STRONG> <STRONG>int</STRONG> <STRONG>y,</STRONG> <STRONG>int</STRONG> <STRONG>x,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*fmt,</STRONG> <STRONG>...);</STRONG>
-       <STRONG>int</STRONG> <STRONG>vw_scanw(WINDOW</STRONG> <STRONG>*win,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*fmt,</STRONG> <STRONG>va_list</STRONG> <STRONG>varglist);</STRONG>
+       <STRONG>int</STRONG> <STRONG>scanw(const</STRONG> <STRONG>char</STRONG> <STRONG>*</STRONG><EM>fmt</EM><STRONG>,</STRONG> <STRONG>...);</STRONG>
+       <STRONG>int</STRONG> <STRONG>wscanw(WINDOW</STRONG> <STRONG>*</STRONG><EM>win</EM><STRONG>,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*</STRONG><EM>fmt</EM><STRONG>,</STRONG> <STRONG>...);</STRONG>
+       <STRONG>int</STRONG> <STRONG>mvscanw(int</STRONG> <EM>y</EM><STRONG>,</STRONG> <STRONG>int</STRONG> <EM>x</EM><STRONG>,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*</STRONG><EM>fmt</EM><STRONG>,</STRONG> <STRONG>...);</STRONG>
+       <STRONG>int</STRONG> <STRONG>mvwscanw(WINDOW</STRONG> <STRONG>*</STRONG><EM>win</EM><STRONG>,</STRONG> <STRONG>int</STRONG> <EM>y</EM><STRONG>,</STRONG> <STRONG>int</STRONG> <EM>x</EM><STRONG>,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*</STRONG><EM>fmt</EM><STRONG>,</STRONG> <STRONG>...);</STRONG>
+
+       <STRONG>int</STRONG> <STRONG>vw_scanw(WINDOW</STRONG> <STRONG>*</STRONG><EM>win</EM><STRONG>,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*</STRONG><EM>fmt</EM><STRONG>,</STRONG> <STRONG>va_list</STRONG> <EM>varglist</EM><STRONG>);</STRONG>
 
        /* obsolete */
-       <STRONG>int</STRONG> <STRONG>vwscanw(WINDOW</STRONG> <STRONG>*win,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*fmt,</STRONG> <STRONG>va_list</STRONG> <STRONG>varglist);</STRONG>
+       <STRONG>int</STRONG> <STRONG>vwscanw(WINDOW</STRONG> <STRONG>*</STRONG><EM>win</EM><STRONG>,</STRONG> <STRONG>const</STRONG> <STRONG>char</STRONG> <STRONG>*</STRONG><EM>fmt</EM><STRONG>,</STRONG> <STRONG>va_list</STRONG> <EM>varglist</EM><STRONG>);</STRONG>
 
 
 </PRE><H2><a name="h2-DESCRIPTION">DESCRIPTION</a></H2><PRE>
@@ -92,12 +93,12 @@
 </PRE><H2><a name="h2-HISTORY">HISTORY</a></H2><PRE>
        While  <STRONG>scanw</STRONG>  was implemented in 4BSD, none of the BSD releases used it
        until 4.4BSD (in a game).  That early version of curses was before  the
-       ANSI  C  standard.   It did not use &lt;varargs.h&gt;, though that was avail-
-       able.  In 1991 (a couple of years after SVr4 was  generally  available,
-       and  after  the C standard was published), other developers updated the
-       library, using &lt;stdarg.h&gt; internally in 4.4BSD curses.  Even with  this
-       improvement,  BSD  curses  did  not  use  function  prototypes (or even
-       declare functions) in the &lt;curses.h&gt; header until 1992.
+       ANSI  C  standard.   It  did  not  use  &lt;varargs.h&gt;,  though  that  was
+       available.  In 1991  (a  couple  of  years  after  SVr4  was  generally
+       available,  and  after  the C standard was published), other developers
+       updated the library, using  &lt;stdarg.h&gt;  internally  in  4.4BSD  curses.
+       Even  with this improvement, BSD curses did not use function prototypes
+       (or even declare functions) in the &lt;curses.h&gt; header until 1992.
 
        SVr2 documented <STRONG>scanw</STRONG>, <STRONG>wscanw</STRONG> tersely as  "scanf  through  <EM>stdscr</EM>"  and
        tersely as "scanf through <EM>win</EM>", respectively.
@@ -143,16 +144,16 @@
            is  probably  an  editing error which was introduced in XSI, rather
            than being done intentionally.
 
-       <STRONG>o</STRONG>   This implementation returns the number of items scanned,  for  com-
-           patibility  with  SVr4  curses.   As  of  2018,  NetBSD curses also
+       <STRONG>o</STRONG>   This implementation  returns  the  number  of  items  scanned,  for
+           compatibility  with  SVr4  curses.   As of 2018, NetBSD curses also
            returns the number of  items  scanned.   Both  ncurses  and  NetBSD
            curses call <STRONG>vsscanf</STRONG> to scan the string, which returns <STRONG>EOF</STRONG> on error.
 
        <STRONG>o</STRONG>   Portable  applications should only test if the return value is <STRONG>ERR</STRONG>,
            since the <STRONG>OK</STRONG> value (zero) is likely to be misleading.
 
-           One possible way to get useful results would be to use a "%n"  con-
-           version  at  the  end of the format string to ensure that something
+           One possible way to get useful results  would  be  to  use  a  "%n"
+           conversion at the end of the format string to ensure that something
            was processed.
 
 

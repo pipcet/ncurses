@@ -27,7 +27,7 @@
 .\" authorization.                                                           *
 .\"***************************************************************************
 .\"
-.\" $Id: curs_printw.3x,v 1.26 2020/03/14 23:48:47 tom Exp $
+.\" $Id: curs_printw.3x,v 1.28 2020/10/24 09:22:45 tom Exp $
 .TH curs_printw 3X ""
 .ie \n(.g .ds `` \(lq
 .el       .ds `` ``
@@ -50,19 +50,19 @@
 .SH SYNOPSIS
 \fB#include <curses.h>\fR
 .sp
-\fBint printw(const char *fmt, ...);\fR
+\fBint printw(const char *\fP\fIfmt\fP\fB, ...);\fR
 .br
-\fBint wprintw(WINDOW *win, const char *fmt, ...);\fR
+\fBint wprintw(WINDOW *\fP\fIwin\fP\fB, const char *\fP\fIfmt\fP\fB, ...);\fR
 .br
-\fBint mvprintw(int y, int x, const char *fmt, ...);\fR
+\fBint mvprintw(int \fP\fIy\fP\fB, int \fP\fIx\fP\fB, const char *\fP\fIfmt\fP\fB, ...);\fR
 .br
-\fBint mvwprintw(WINDOW *win, int y, int x, const char *fmt, ...);\fR
+\fBint mvwprintw(WINDOW *\fP\fIwin\fP\fB, int \fP\fIy\fP\fB, int \fP\fIx\fP\fB, const char *\fP\fIfmt\fP\fB, ...);\fR
 .br
-\fBint vw_printw(WINDOW *win, const char *fmt, va_list varglist);\fR
+\fBint vw_printw(WINDOW *\fP\fIwin\fP\fB, const char *\fP\fIfmt\fP\fB, va_list \fP\fIvarglist\fP\fB);\fR
 .sp
 /* obsolete */
 .br
-\fBint vwprintw(WINDOW *win, const char *fmt, va_list varglist);\fR
+\fBint vwprintw(WINDOW *\fP\fIwin\fP\fB, const char *\fP\fIfmt\fP\fB, va_list \fP\fIvarglist\fP\fB);\fR
 .SH DESCRIPTION
 The \fBprintw\fR, \fBwprintw\fR, \fBmvprintw\fR and \fBmvwprintw\fR
 routines are analogous to \fBprintf\fR [see \fBprintf\fR(3)].
@@ -70,7 +70,7 @@ In
 effect, the string that would be output by \fBprintf\fR is output
 instead as though \fBwaddstr\fR were used on the given window.
 .PP
-The \fBvwprintw\fR and \fBwv_printw\fR routines are analogous
+The \fBvwprintw\fR and \fBvw_printw\fR routines are analogous
 to \fBvprintf\fR [see \fBprintf\fR(3)]
 and perform a \fBwprintw\fR using a variable argument list.
 The third argument is a \fBva_list\fR, a pointer to a

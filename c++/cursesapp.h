@@ -32,12 +32,23 @@
  *   Author: Juergen Pfeifer, 1997                                          *
  ****************************************************************************/
 
-// $Id: cursesapp.h,v 1.15 2020/05/24 01:40:20 anonymous.maarten Exp $
+// $Id: cursesapp.h,v 1.17 2020/08/29 16:22:03 juergen Exp $
 
 #ifndef NCURSES_CURSESAPP_H_incl
 #define NCURSES_CURSESAPP_H_incl
 
 #include <cursslk.h>
+
+#if (defined(_WIN32) || defined(_WIN64))
+# define NCURSES_CXX_MAIN_NAME cursespp_main
+# define NCURSES_CXX_MAIN \
+  int main(int argc, char *argv[]) { \
+  	return NCURSES_CXX_MAIN_NAME(argc, argv); \
+  }
+#else
+# define NCURSES_CXX_MAIN_NAME main
+#endif
+NCURSES_CXX_IMPEXP int NCURSES_CXX_MAIN_NAME(int argc, char *argv[]);
 
 class NCURSES_CXX_IMPEXP NCursesApplication {
 public:
@@ -106,13 +117,13 @@ protected:
   {
   }
 
+  static NCursesWindow *&getTitleWindow();
+
 public:
   virtual ~NCursesApplication() THROWS(NCursesException);
 
   // Get a pointer to the current application object
-  static NCursesApplication* getApplication() {
-    return theApp;
-  }
+  static NCursesApplication* getApplication();
 
   // This method runs the application and returns its exit value
   int operator()(void);
