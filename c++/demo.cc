@@ -569,4 +569,4 @@ int TestApplication::run()
 //
 static TestApplication *Demo = new TestApplication();
 
-int main() {}
+int main(int, char *[]) {}
