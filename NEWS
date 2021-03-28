@@ -26,7 +26,7 @@
 -- sale, use or other dealings in this Software without prior written        --
 -- authorization.                                                            --
 -------------------------------------------------------------------------------
--- $Id: NEWS,v 1.3631 2021/02/13 22:39:42 tom Exp $
+-- $Id: NEWS,v 1.3645 2021/03/23 00:12:19 tom Exp $
 -------------------------------------------------------------------------------
 
 This is a log of changes that ncurses has gone through since Zeyd started
@@ -45,6 +45,59 @@ See the AUTHORS file for the corresponding full names.
 
 Changes through 1.9.9e did not credit all contributions;
 it is not possible to add this information.
+
+20210323
+	+ add configure option --enable-stdnoreturn, making the _Noreturn
+	  keyword optional to ease transition (prompted by report by
+	  Rajeev V Pillai).
+
+20210320
+	+ improve parameter-checking in tput by forcing it to analyze any
+	  extended string capability, e.g., as used in the Cs and Ms
+	  capabilities of the tmux description (report by Brad Town,
+	  cf: 20200531).
+	+ remove an incorrect free in the fallback (non-checking) version of
+	  _nc_free_and_exit (report by Miroslav Lichvar).
+	+ correct use-ordering in some xterm-direct flavors -TD
+	+ add hterm, hterm-256color (Mike Frysinger)
+	+ if the build-time compiler accepts c11's _Noreturn keyword, use that
+	  rather than gcc's attribute.
+	+ change configure-check for gcc's noreturn attribute to assume it is
+	  a prefix rather than suffix, matching c11's _Noreturn convention.
+	+ add "lint" rule to c++/Makefile, e.g., with cppcheck.
+
+20210313
+	+ improve configure CF_LD_SEARCHPATH macro used for ncurses*-config and
+	  ".pc" files, from dialog changes.
+	+ reduce dependency of math-library in test programs.
+	+ minor fixes for test_tparm.c (cf: 20210306)
+	+ mention "ncurses" prefix in curses_version() manpage (report by
+	  Michal Bielinski).
+
+20210306
+	+ improved test/test_tparm.c, by limiting the tests to capabilities
+	  that might have parameters or padding, and combined with tputs test.
+	+ improve discussion of padding versus tparm and tputs in
+	  man/curs_terminfo.3x
+	+ update portability note for FreeBSD in man/tput.1
+
+20210227
+	+ modify tic/infocmp to eliminate unnecessary "\" to escape ":" in
+	  terminfo format.
+	+ add check in tic for duplicate "use=" clauses.
+
+20210220
+	+ improve tic warning when oc/op do not mention SGR 39/49 for xterm
+	  compatible XT flag.
+	+ revert change to lib_addch.c in waddch_literal() from 20210130, since
+	  the followup fix in PutCharLR() actually corrects the problem while
+	  this change causes too-early filling/wrapping (report by Johannes
+	  Altmanninger).
+	+ add/use vt220+pcedit and vt220+vtedit  -TD
+	+ add scrt/securecrt and absolute -TD
+	+ add nel to xterm-new, though supported since X11R5 -TD
+	+ add/use xterm+nofkeys -TD
+	+ move use of ecma+italics from xterm-basic to xterm+nofkeys -TD
 
 20210213
 	+ add test/back_ground.c, to exercise the wide-character background
@@ -367,7 +420,7 @@ it is not possible to add this information.
 	+ re-enable "bel" in konsole-base (report by Nia Huang)
 	+ add linux-s entry (patch by Alexandre Montaron).
 	+ drop long-obsolete convert_configure.pl
-	+ add test/test_parm.c, for checking tparm changes.
+	+ add test/test_tparm.c, for checking tparm changes.
 	+ improve parameter-checking for tparm, adding function _nc_tiparm() to
 	  handle the most-used case, which accepts only numeric parameters
 	  (report/testcase by "puppet-meteor").

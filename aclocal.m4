@@ -29,7 +29,7 @@ dnl***************************************************************************
 dnl
 dnl Author: Thomas E. Dickey 1995-on
 dnl
-dnl $Id: aclocal.m4,v 1.950 2021/01/26 23:45:12 tom Exp $
+dnl $Id: aclocal.m4,v 1.955 2021/03/23 00:39:18 tom Exp $
 dnl Macros used in NCURSES auto-configuration script.
 dnl
 dnl These macros are maintained separately from NCURSES.  The copyright on
@@ -792,6 +792,44 @@ AC_SUBST(BUILD_LDFLAGS)
 AC_SUBST(BUILD_LIBS)
 AC_SUBST(BUILD_EXEEXT)
 AC_SUBST(BUILD_OBJEXT)
+])dnl
+dnl ---------------------------------------------------------------------------
+dnl CF_C11_NORETURN version: 2 updated: 2021/03/22 20:37:21
+dnl ---------------
+AC_DEFUN([CF_C11_NORETURN],
+[
+AC_MSG_CHECKING(if you want to use C11 _Noreturn feature)
+CF_ARG_ENABLE(stdnoreturn,
+	[  --enable-stdnoreturn    enable C11 _Noreturn feature for diagnostics],
+	[enable_stdnoreturn=yes],
+	[enable_stdnoreturn=no])
+AC_MSG_RESULT($enable_stdnoreturn)
+
+if test $enable_stdnoreturn = yes; then
+AC_CACHE_CHECK([for C11 _Noreturn feature], cf_cv_c11_noreturn,
+	[AC_TRY_COMPILE([
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdnoreturn.h>
+static void giveup(void) { exit(0); }
+	],
+	[if (feof(stdin)) giveup()],
+	cf_cv_c11_noreturn=yes,
+	cf_cv_c11_noreturn=no)
+	])
+else
+	cf_cv_c11_noreturn=no,
+fi
+
+if test "$cf_cv_c11_noreturn" = yes; then
+	AC_DEFINE(HAVE_STDNORETURN_H, 1)
+	AC_DEFINE_UNQUOTED(STDC_NORETURN,_Noreturn,[Define if C11 _Noreturn keyword is supported])
+	HAVE_STDNORETURN_H=1
+else
+	HAVE_STDNORETURN_H=0
+fi
+
+AC_SUBST(HAVE_STDNORETURN_H)
 ])dnl
 dnl ---------------------------------------------------------------------------
 dnl CF_CC_ENV_FLAGS version: 10 updated: 2020/12/31 18:40:20
@@ -2669,13 +2707,14 @@ esac
 
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_GCC_ATTRIBUTES version: 23 updated: 2021/01/03 18:30:50
+dnl CF_GCC_ATTRIBUTES version: 24 updated: 2021/03/20 12:00:25
 dnl -----------------
 dnl Test for availability of useful gcc __attribute__ directives to quiet
 dnl compiler warnings.  Though useful, not all are supported -- and contrary
 dnl to documentation, unrecognized directives cause older compilers to barf.
 AC_DEFUN([CF_GCC_ATTRIBUTES],
 [AC_REQUIRE([AC_PROG_FGREP])dnl
+AC_REQUIRE([CF_C11_NORETURN])dnl
 
 if test "$GCC" = yes || test "$GXX" = yes
 then
@@ -2712,8 +2751,8 @@ cat > "conftest.$ac_ext" <<EOF
 #define GCC_SCANFLIKE(fmt,var)  /*nothing*/
 #endif
 extern void wow(char *,...) GCC_SCANFLIKE(1,2);
-extern void oops(char *,...) GCC_PRINTFLIKE(1,2) GCC_NORETURN;
-extern void foo(void) GCC_NORETURN;
+extern GCC_NORETURN void oops(char *,...) GCC_PRINTFLIKE(1,2);
+extern GCC_NORETURN void foo(void);
 int main(int argc GCC_UNUSED, char *argv[[]] GCC_UNUSED) { (void)argc; (void)argv; return 0; }
 EOF
 	cf_printf_attribute=no
@@ -4090,7 +4129,7 @@ then
 fi
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_LD_SEARCHPATH version: 2 updated: 2019/09/26 20:34:14
+dnl CF_LD_SEARCHPATH version: 3 updated: 2021/03/05 19:13:35
 dnl ----------------
 dnl Try to obtain the linker's search-path, for use in scripts.
 dnl
@@ -4106,14 +4145,14 @@ cf_pathlist=`ld --verbose 2>/dev/null | grep SEARCH_DIR | sed -e 's,SEARCH_DIR[[
 # The -NX options tell newer versions of Linux ldconfig to not attempt to
 # update the cache, which makes it run faster.
 test -z "$cf_pathlist" && \
-	cf_pathlist=`ldconfig -NX -v 2>/dev/null | sed -e '/^[[ 	]]/d' -e 's/:$//' | sort -u`
+	cf_pathlist=`(ldconfig -NX -v) 2>/dev/null | sed -e '/^[[ 	]]/d' -e 's/:$//' | sort -u`
 
 test -z "$cf_pathlist" &&
-	cf_pathlist=`ldconfig -v 2>/dev/null | sed -n -e '/^[[ 	]]/d' -e 's/:$//p' | sort -u`
+	cf_pathlist=`(ldconfig -v) 2>/dev/null | sed -n -e '/^[[ 	]]/d' -e 's/:$//p' | sort -u`
 
 # This works with OpenBSD 6.5, which lists only filenames
 test -z "$cf_pathlist" &&
-	cf_pathlist=`ldconfig -v 2>/dev/null | sed -n -e 's,^Adding \(.*\)/.*[$],\1,p' | sort -u`
+	cf_pathlist=`(ldconfig -v) 2>/dev/null | sed -n -e 's,^Adding \(.*\)/.*[$],\1,p' | sort -u`
 
 if test -z "$cf_pathlist"
 then
@@ -4128,13 +4167,37 @@ fi
 
 if test -z "$cf_pathlist"
 then
-	# Solaris is hardcoded
-	if test -d /opt/SUNWspro/lib
+	# Solaris is "SunOS"
+	if test -f /usr/bin/isainfo && test "x`uname -s`" = xSunOS
 	then
-		cf_pathlist="/opt/SUNWspro/lib /usr/ccs/lib /usr/lib"
-	elif test -d /usr/ccs/lib
+		case x`(isainfo -b)` in
+		(x64)
+			cf_pathlist="$cf_pathlist /lib/64 /usr/lib/64"
+			;;
+		(x32)
+			test -d /usr/ccs/lib && cf_pathlist="$cf_pathlist /usr/ccs/lib"
+			cf_pathlist="$cf_pathlist /lib /usr/lib"
+			;;
+		(*)
+			AC_MSG_WARN(problem with Solaris architecture)
+			;;
+		esac
+	fi
+fi
+
+if test -z "$cf_pathlist"
+then
+	# HP-UX
+	if test x"`uname -s`" = xHP-UX
 	then
-		cf_pathlist="/usr/ccs/lib /usr/lib"
+		case x`getconf LONG_BIT` in
+		(x64)
+			cf_pathlist="/usr/lib/hpux64"
+			;;
+		(x*)
+			cf_pathlist="/usr/lib/hpux32"
+			;;
+		esac
 	fi
 fi
 
@@ -4225,7 +4288,7 @@ ifelse($1,,,[$1=$LIB_PREFIX])
 	AC_SUBST(LIB_PREFIX)
 ])dnl
 dnl ---------------------------------------------------------------------------
-dnl CF_LIB_RULES version: 94 updated: 2021/01/23 15:37:41
+dnl CF_LIB_RULES version: 95 updated: 2021/03/20 12:00:25
 dnl ------------
 dnl Append definitions and rules for the given models to the subdirectory
 dnl Makefiles, and the recursion rule for the top-level Makefile.  If the
@@ -4634,9 +4697,9 @@ install.includes \\
 uninstall.includes \\
 CF_EOF
 		fi
-if test "$cf_dir" != "c++" ; then
+
 echo 'lint \' >> Makefile
-fi
+
 cat >> Makefile <<CF_EOF
 libs \\
 lintlib \\

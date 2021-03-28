@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright 2018-2019,2020 Thomas E. Dickey                                *
+ * Copyright 2018-2020,2021 Thomas E. Dickey                                *
  * Copyright 1998-2017,2018 Free Software Foundation, Inc.                  *
  *                                                                          *
  * Permission is hereby granted, free of charge, to any person obtaining a  *
@@ -49,7 +49,7 @@
 #include <parametrized.h>
 #include <transform.h>
 
-MODULE_ID("$Id: tic.c,v 1.290 2020/11/14 18:16:33 tom Exp $")
+MODULE_ID("$Id: tic.c,v 1.293 2021/03/20 20:51:01 tom Exp $")
 
 #define STDIN_NAME "<stdin>"
 
@@ -1711,6 +1711,7 @@ check_screen(TERMTYPE2 *tp)
 	int have_bce = back_color_erase;
 	bool have_kmouse = FALSE;
 	bool use_sgr_39_49 = FALSE;
+	const char *name_39_49 = "orig_pair or orig_colors";
 	char *name = _nc_first_name(tp->term_names);
 	bool is_screen = !strncmp(name, "screen", 6);
 	bool screen_base = (is_screen
@@ -1728,10 +1729,15 @@ check_screen(TERMTYPE2 *tp)
 	if (VALID_STRING(key_mouse)) {
 	    have_kmouse = !strcmp("\033[M", key_mouse);
 	}
-	if (VALID_STRING(orig_colors)) {
-	    use_sgr_39_49 = uses_SGR_39_49(orig_colors);
-	} else if (VALID_STRING(orig_pair)) {
-	    use_sgr_39_49 = uses_SGR_39_49(orig_pair);
+	if (have_bce) {
+	    if (VALID_STRING(orig_pair)) {
+		name_39_49 = "orig_pair";
+		use_sgr_39_49 = uses_SGR_39_49(orig_pair);
+	    }
+	    if (!use_sgr_39_49 && VALID_STRING(orig_colors)) {
+		name_39_49 = "orig_colors";
+		use_sgr_39_49 = uses_SGR_39_49(orig_colors);
+	    }
 	}
 
 	if (have_XM && have_XT) {
@@ -1746,10 +1752,14 @@ check_screen(TERMTYPE2 *tp)
 		    _nc_warning("expected kmous capability with XT");
 		}
 	    }
-	    if (!have_bce && max_colors > 0)
-		_nc_warning("expected bce capability with XT");
-	    if (!use_sgr_39_49 && have_bce && max_colors > 0)
-		_nc_warning("expected orig_colors capability with XT to have 39/49 parameters");
+	    if (max_colors > 0) {
+		if (!have_bce) {
+		    _nc_warning("expected bce capability with XT");
+		} else if (!use_sgr_39_49) {
+		    _nc_warning("expected %s capability with XT "
+				"to have 39/49 parameters", name_39_49);
+		}
+	    }
 	    if (VALID_STRING(to_status_line))
 		_nc_warning("\"tsl\" capability is redundant, given XT");
 	} else {
@@ -2087,7 +2097,6 @@ check_delays(TERMTYPE2 *tp, const char *name, const char *value)
 	if (p[0] == '$' && p[1] == '<') {
 	    const char *base = p + 2;
 	    const char *mark = 0;
-	    bool maybe = TRUE;
 	    bool mixed = FALSE;
 	    int proportional = 0;
 	    int mandatory = 0;
@@ -2107,20 +2116,17 @@ check_delays(TERMTYPE2 *tp, const char *name, const char *value)
 		    if (mark == 0)
 			mark = q;
 		} else if (!(isalnum(UChar(*q)) || strchr("+-.", *q) != 0)) {
-		    maybe = FALSE;
 		    break;
 		} else if (proportional || mandatory) {
 		    mixed = TRUE;
 		}
 	    }
 	    last = *q ? (q + 1) : q;
-	    if (*q == '\0') {
-		maybe = FALSE;	/* just an isolated "$<" */
-	    } else if (maybe) {
+	    if (*q != '\0') {
 		float check_f;
 		char check_c;
 		int rc = sscanf(base, "%f%c", &check_f, &check_c);
-		if ((rc != 2) || (check_c != *mark) || mixed) {
+		if ((rc != 2) || (mark != NULL && (check_c != *mark)) || mixed) {
 		    _nc_warning("syntax error in %s delay '%.*s'", name,
 				(int) (q - base), base);
 		} else if (*name == 'k') {
@@ -2373,7 +2379,7 @@ check_infotocap(TERMTYPE2 *tp, int i, const char *value)
 		  : ((*value == 'k')
 		     ? 0
 		     : has_params(value, FALSE)));
-    char *ti_value;
+    char *ti_value = NULL;
     char *tc_value;
     bool embedded;
 
@@ -2421,6 +2427,7 @@ check_infotocap(TERMTYPE2 *tp, int i, const char *value)
 			name, ti_value, tc_value);
 	}
     }
+    free(ti_value);
 }
 
 static char *
